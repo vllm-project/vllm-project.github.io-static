@@ -142,19 +142,19 @@ Example generation process for a request that samples multiple outputs.
 
 <h2 id="the-silent-hero-behind-lmsys-vicuna-and-chatbot-arena">The Silent Hero Behind LMSYS Vicuna and Chatbot Arena</h2>
 
-<p>This April, <a href="https://lmsys.org">LMSYS</a> developed the popular Vicuna chatbot models and made them publicly available. Since then, Vicuna has been served in <a href="https://arena.lmsys.org/">Chatbot Arena</a> for millions of users. Initially, LMSYS FastChat adopted a HF Transformers based <a href="https://github.com/lm-sys/FastChat/blob/main/fastchat/serve/model_worker.py">serving backend</a> to serve the chat demo. As the demo became more popular, the peak traffic ramped up several times, making the HF backend a significant bottleneck. The LMSYS and vLLM team have worked together and soon developed the FastChat-vLLM integration to use vLLM <a href="https://github.com/lm-sys/FastChat/blob/main/fastchat/serve/vllm_worker.py">as the new backend</a> in order to support the growing demands (up to 7x more traffic). In an early <a href="https://github.com/lm-sys/FastChat/blob/main/fastchat/serve/test_throughput.py">internal micro-benchmark</a> by LMSYS, the vLLM inference backend can <strong>achieve up to 30x higher throughput than an initial HF backend.</strong></p>
+<p>This April, <a href="https://lmsys.org">LMSYS</a> developed the popular Vicuna chatbot models and made them publicly available. Since then, Vicuna has been served in <a href="https://arena.lmsys.org/">Chatbot Arena</a> for millions of users. Initially, LMSYS FastChat adopted a HF Transformers based <a href="https://github.com/lm-sys/FastChat/blob/main/fastchat/serve/model_worker.py">serving backend</a> to serve the chat demo. As the demo became more popular, the peak traffic ramped up several times, making the HF backend a significant bottleneck. The LMSYS and vLLM team have worked together and soon developed the FastChat-vLLM integration to use vLLM <a href="https://github.com/lm-sys/FastChat/blob/main/fastchat/serve/vllm_worker.py">as the new backend</a> in order to support the growing demands (up to 5x more traffic). In an early <a href="https://github.com/lm-sys/FastChat/blob/main/fastchat/serve/test_throughput.py">internal micro-benchmark</a> by LMSYS, the vLLM serving backend can <strong>achieve up to 30x higher throughput than an initial HF backend.</strong></p>
 
-<p>Since mid-April, the most popular models such as Vicuna, Koala, and LLaMA, have all been successfully served using the FastChat-vLLM integration – With FastChat as the chat frontend and vLLM as the inference backend, LMSYS is able to harness a limited number of university-sponsored GPU resources to serve Vicuna to millions of users with <em>high throughput</em> and <em>low latency</em>. LMSYS is expanding the use of vLLM to a wider range of models, including Databricks Dolly, LAION’s OpenAsssiant, and Stability AI’s stableLM. The <a href="https://vllm.readthedocs.io/en/latest/models/supported_models.html">support for more models</a> is being developed and forthcoming.</p>
+<p>Since mid-April, the most popular models such as Vicuna, Koala, and LLaMA, have all been successfully served using the FastChat-vLLM integration – With FastChat as the multi-model chat serving frontend and vLLM as the inference backend, LMSYS is able to harness a limited number of university-sponsored GPUs to serve Vicuna to millions of users with <em>high throughput</em> and <em>low latency</em>. LMSYS is expanding the use of vLLM to a wider range of models, including Databricks Dolly, LAION’s OpenAsssiant, and Stability AI’s stableLM. The <a href="https://vllm.readthedocs.io/en/latest/models/supported_models.html">support for more models</a> is being developed and forthcoming.</p>
 
 <p align="center">
 <picture>
 <img src="assets/figures/lmsys_traffic.png" width="100%" />
 </picture>
 <br />
-Chat sessions served by vLLM in the Chatbot Arena between April to May. Indeed, more than half of the chat sessions in Chatbot Arena use vLLM as the inference engine.
+Requests served by FastChat-vLLM integration in the Chatbot Arena between April to May. Indeed, more than half of the requests to Chatbot Arena use vLLM as the inference backend.
 </p>
 
-<p>This utilization of vLLM has also significantly reduced operational costs. With vLLM, LMSYS was able to cut the number of GPUs used for serving the above traffic by 50%. vLLM has been handling an average of 30K chat sessions daily and a peak of 60K, which is a clear demonstration of vLLM’s robustness.</p>
+<p>This utilization of vLLM has also significantly reduced operational costs. With vLLM, LMSYS was able to cut the number of GPUs used for serving the above traffic by 50%. vLLM has been handling an average of 30K requests daily and a peak of 60K, which is a clear demonstration of vLLM’s robustness.</p>
 
 <h2 id="get-started-with-vllm">Get started with vLLM</h2>
 
@@ -205,7 +205,7 @@ Chat sessions served by vLLM in the Chatbot Arena between April to May. Indeed, 
 
       <footer class="footer">
         <small>
-          &copy; <time datetime="2023-06-21T03:02:00+08:00">2023</time>. vLLM Team. All rights reserved.
+          &copy; <time datetime="2023-06-21T04:02:18+08:00">2023</time>. vLLM Team. All rights reserved.
         </small>
       </footer>
     </div>
