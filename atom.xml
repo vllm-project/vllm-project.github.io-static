@@ -4,7 +4,7 @@
  <title></title>
  <link href="/atom.xml" rel="self"/>
  <link href="https://vllm.ai/"/>
- <updated>2023-06-21T04:02:18+08:00</updated>
+ <updated>2023-09-14T13:42:56-07:00</updated>
  <id>https://vllm.ai</id>
  <author>
    <name>vLLM Team</name>
@@ -15,7 +15,7 @@
  <entry>
    <title>vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention</title>
    <link href="https://vllm.ai/2023/06/20/introduction/"/>
-   <updated>2023-06-20T00:00:00+08:00</updated>
+   <updated>2023-06-20T00:00:00-07:00</updated>
    <id>https://vllm.ai/2023/06/20/introduction</id>
    <content type="html">&lt;p align=&quot;center&quot;&gt;
 &lt;picture&gt;
@@ -28,7 +28,7 @@
 &lt;p&gt;&lt;em&gt;By Woosuk Kwon*, Zhuohan Li*, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Yu, Joey Gonzalez, Hao Zhang, and Ion Stoica (* Equal Contribution). June 20th, 2023&lt;/em&gt;&lt;/p&gt;
 
 &lt;p align=&quot;left&quot;&gt;
-&lt;a href=&quot;https://github.com/vllm-project/vllm&quot;&gt;&lt;b&gt;GitHub&lt;/b&gt;&lt;/a&gt; | &lt;a href=&quot;https://vllm.readthedocs.io/en/latest/&quot;&gt;&lt;b&gt;Documentation&lt;/b&gt;&lt;/a&gt; | &lt;b&gt;Paper (Stay Tuned)&lt;/b&gt;
+&lt;a href=&quot;https://github.com/vllm-project/vllm&quot;&gt;&lt;b&gt;GitHub&lt;/b&gt;&lt;/a&gt; | &lt;a href=&quot;https://vllm.readthedocs.io/en/latest/&quot;&gt;&lt;b&gt;Documentation&lt;/b&gt;&lt;/a&gt; | &lt;a href=&quot;https://arxiv.org/pdf/2309.06180.pdf&quot;&gt;&lt;b&gt;Paper&lt;/b&gt;&lt;/a&gt;
 &lt;/p&gt;
 
 &lt;hr /&gt;
