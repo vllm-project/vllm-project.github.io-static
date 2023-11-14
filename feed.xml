@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2023-11-14T13:52:22-08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2023. vLLM Team. All rights reserved.</name><email>https://github.com/vllm-project/vllm</email></author><entry><title type="html">Notes on vLLM v.s. DeepSpeed</title><link href="http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html" rel="alternate" type="text/html" title="Notes on vLLM v.s. DeepSpeed" /><published>2023-11-14T00:00:00-08:00</published><updated>2023-11-14T00:00:00-08:00</updated><id>http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed</id><content type="html" xml:base="http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html"><![CDATA[<hr />
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2023-11-14T14:32:50-08:00</updated><id>/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2023. vLLM Team. All rights reserved.</name><email>https://github.com/vllm-project/vllm</email></author><entry><title type="html">Notes on vLLM v.s. DeepSpeed</title><link href="/2023/11/14/notes-vllm-vs-deepspeed.html" rel="alternate" type="text/html" title="Notes on vLLM v.s. DeepSpeed" /><published>2023-11-14T00:00:00-08:00</published><updated>2023-11-14T00:00:00-08:00</updated><id>/2023/11/14/notes-vllm-vs-deepspeed</id><content type="html" xml:base="/2023/11/14/notes-vllm-vs-deepspeed.html"><![CDATA[<hr />
 <p><strong>TL;DR:</strong></p>
 
 <ul>
@@ -19,8 +19,8 @@ For the majority of workloads, vLLM is faster than (or performs comparably to) D
 <p>We’ve identified two key differences between vLLM and DeepSpeed in terms of performance optimization:</p>
 
 <ol>
-  <li>DeepSpeed adopts a conservative/suboptimal memory allocation scheme, which wastes memory when output lengths are large.</li>
-  <li>DeepSpeed’s Dynamic SplitFuse scheduling gives speedup only when prompt lengths are much greater than output lengths.</li>
+  <li><strong>DeepSpeed adopts a conservative/suboptimal memory allocation scheme</strong>, which wastes memory when output lengths are large.</li>
+  <li>DeepSpeed’s Dynamic SplitFuse scheduling gives <strong>speedup only when prompt lengths are much greater than output lengths</strong>.</li>
 </ol>
 
 <p>As a result, DeepSpeed outperforms when the workload is consistently long prompt and short output.
@@ -37,7 +37,7 @@ However, the performance gain we observe isn’t as significant as 2x.</p>
 </p>
 
 <h4 id="scenario-2-other-cases">Scenario 2: Other cases</h4>
-<p>In these cases, vLLM is up to 1.8x faster than DeepSpeed.</p>
+<p>In these cases, vLLM is up to <strong>1.8x</strong> faster than DeepSpeed.</p>
 
 <p align="center">
 <picture>
@@ -117,7 +117,7 @@ We do expect the DeepSpeed open source are eager to catch up and we welcome the 
       <td style="text-align: center">EOS</td>
     </tr>
   </tbody>
-</table>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[TL;DR:]]></summary></entry><entry><title type="html">vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention</title><link href="http://localhost:4000/2023/06/20/vllm.html" rel="alternate" type="text/html" title="vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention" /><published>2023-06-20T00:00:00-07:00</published><updated>2023-06-20T00:00:00-07:00</updated><id>http://localhost:4000/2023/06/20/vllm</id><content type="html" xml:base="http://localhost:4000/2023/06/20/vllm.html"><![CDATA[<p align="center" style="margin-top:-15px">
+</table>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[TL;DR:]]></summary></entry><entry><title type="html">vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention</title><link href="/2023/06/20/vllm.html" rel="alternate" type="text/html" title="vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention" /><published>2023-06-20T00:00:00-07:00</published><updated>2023-06-20T00:00:00-07:00</updated><id>/2023/06/20/vllm</id><content type="html" xml:base="/2023/06/20/vllm.html"><![CDATA[<p align="center" style="margin-top:-15px">
 <a href="https://github.com/vllm-project/vllm"><b>GitHub</b></a> | <a href="https://vllm.readthedocs.io/en/latest/"><b>Documentation</b></a> | <a href="https://arxiv.org/pdf/2309.06180.pdf"><b>Paper</b></a>
 </p>
 
