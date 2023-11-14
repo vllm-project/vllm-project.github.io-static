@@ -3,9 +3,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Notes on vLLM v.s. DeepSpeed | vLLM Blog</title>
+<title>Notes on vLLM v.s. DeepSpeed-FastGen | vLLM Blog</title>
 <meta name="generator" content="Jekyll v4.3.2" />
-<meta property="og:title" content="Notes on vLLM v.s. DeepSpeed" />
+<meta property="og:title" content="Notes on vLLM v.s. DeepSpeed-FastGen" />
 <meta name="author" content="vLLM Team" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="TL;DR:" />
@@ -14,9 +14,9 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2023-11-14T00:00:00-08:00" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Notes on vLLM v.s. DeepSpeed" />
+<meta property="twitter:title" content="Notes on vLLM v.s. DeepSpeed-FastGen" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2023-11-14T00:00:00-08:00","datePublished":"2023-11-14T00:00:00-08:00","description":"TL;DR:","headline":"Notes on vLLM v.s. DeepSpeed","mainEntityOfPage":{"@type":"WebPage","@id":"/2023/11/14/notes-vllm-vs-deepspeed.html"},"url":"/2023/11/14/notes-vllm-vs-deepspeed.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2023-11-14T00:00:00-08:00","datePublished":"2023-11-14T00:00:00-08:00","description":"TL;DR:","headline":"Notes on vLLM v.s. DeepSpeed-FastGen","mainEntityOfPage":{"@type":"WebPage","@id":"/2023/11/14/notes-vllm-vs-deepspeed.html"},"url":"/2023/11/14/notes-vllm-vs-deepspeed.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="vLLM Blog" />
 </head>
@@ -27,7 +27,7 @@
 <main class="page-content" aria-label="Content">
       <div class="wrapper">
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">Notes on vLLM v.s. DeepSpeed</h1>
+    <h1 class="post-title p-name" itemprop="name headline">Notes on vLLM v.s. DeepSpeed-FastGen</h1>
     <p class="post-meta"><time class="dt-published" datetime="2023-11-14T00:00:00-08:00" itemprop="datePublished">
         Nov 14, 2023
       </time>• 
@@ -40,8 +40,8 @@
 <p><strong>TL;DR:</strong></p>
 
 <ul>
-  <li>vLLM matches DeepSpeed’s speed in common scenarios and surpasses it when handling longer outputs.</li>
-  <li>DeepSpeed only outperforms vLLM in scenarios with long prompts and short outputs, due to its Dynamic SplitFuse optimization. This optimization is on vLLM’s roadmap.</li>
+  <li>vLLM matches DeepSpeed-FastGen’s speed in common scenarios and surpasses it when handling longer outputs.</li>
+  <li>DeepSpeed-FastGen only outperforms vLLM in scenarios with long prompts and short outputs, due to its Dynamic SplitFuse optimization. This optimization is on vLLM’s roadmap.</li>
   <li>vLLM’s mission is to build the fastest and easiest-to-use open-source LLM inference and serving engine. It is Apache 2.0 and community-owned, offering extensive model and optimization support.</li>
 </ul>
 
@@ -50,22 +50,22 @@
 <p>The DeepSpeed team recently published <a href="https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-fastgen">a blog post</a> claiming 2x throughput improvement over vLLM, achieved by leveraging the Dynamic SplitFuse technique.
 We are happy to see the technology advancements from the open-source community.
 In this blog, we show the specific scenarios where the Dynamic SplitFuse technique is advantageous, noting that these cases are relatively limited.
-For the majority of workloads, vLLM is faster than (or performs comparably to) DeepSpeed MII.</p>
+For the majority of workloads, vLLM is faster than (or performs comparably to) DeepSpeed-FastGen.</p>
 
 <h3 id="performance-benchmark">Performance Benchmark</h3>
 
-<p>We’ve identified two key differences between vLLM and DeepSpeed in terms of performance optimization:</p>
+<p>We’ve identified two key differences between vLLM and DeepSpeed-FastGen in terms of performance optimization:</p>
 
 <ol>
-  <li><strong>DeepSpeed adopts a conservative/suboptimal memory allocation scheme</strong>, which wastes memory when output lengths are large.</li>
-  <li>DeepSpeed’s Dynamic SplitFuse scheduling gives <strong>speedup only when prompt lengths are much greater than output lengths</strong>.</li>
+  <li><strong>DeepSpeed-FastGen adopts a conservative/suboptimal memory allocation scheme</strong>, which wastes memory when output lengths are large.</li>
+  <li>DeepSpeed-FastGen’s Dynamic SplitFuse scheduling gives <strong>speedup only when prompt lengths are much greater than output lengths</strong>.</li>
 </ol>
 
-<p>As a result, DeepSpeed outperforms when the workload is consistently long prompt and short output.
+<p>As a result, DeepSpeed-FastGen outperforms when the workload is consistently long prompt and short output.
 In other scenarios, vLLM shows superior performance.</p>
 
 <h4 id="scenario-1-long-prompt-length-short-output">Scenario 1: Long Prompt Length, Short Output</h4>
-<p>Here, DeepSpeed’s Dynamic SplitFuse scheduling is expected to shine.
+<p>Here, DeepSpeed-FastGen’s Dynamic SplitFuse scheduling is expected to shine.
 However, the performance gain we observe isn’t as significant as 2x.</p>
 
 <p align="center">
@@ -75,7 +75,7 @@ However, the performance gain we observe isn’t as significant as 2x.</p>
 </p>
 
 <h4 id="scenario-2-other-cases">Scenario 2: Other cases</h4>
-<p>In these cases, vLLM is up to <strong>1.8x</strong> faster than DeepSpeed.</p>
+<p>In these cases, vLLM is up to <strong>1.8x</strong> faster than DeepSpeed-FastGen.</p>
 
 <p align="center">
 <picture>
@@ -92,15 +92,15 @@ However, the performance gain we observe isn’t as significant as 2x.</p>
 
 <h3 id="appendix-feature-comparison">Appendix: Feature Comparison</h3>
 
-<p>DeepSpeed currently offers basic functionalities, supporting only three model types and lacking popular features like stop strings and parallel sampling (e.g., beam search).
-We do expect the DeepSpeed open source are eager to catch up and we welcome the creative innovation in the market!</p>
+<p>DeepSpeed-FastGen currently offers basic functionalities, supporting only three model types and lacking popular features like stop strings and parallel sampling (e.g., beam search).
+We do expect the DeepSpeed-FastGen is eager to catch up and we welcome the creative innovation in the market!</p>
 
 <table>
   <thead>
     <tr>
       <th> </th>
       <th style="text-align: center">vLLM</th>
-      <th style="text-align: center">DeepSpeed</th>
+      <th style="text-align: center">DeepSpeed-FastGen</th>
     </tr>
   </thead>
   <tbody>
