@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Notes on vLLM v.s. DeepSpeed | vLLM Blog</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Notes on vLLM v.s. DeepSpeed" />
+<meta name="author" content="vLLM Team" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="TL;DR:" />
+<meta property="og:description" content="TL;DR:" />
+<link rel="canonical" href="http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html" />
+<meta property="og:url" content="http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html" />
+<meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-11-14T00:00:00-08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Notes on vLLM v.s. DeepSpeed" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2023-11-14T00:00:00-08:00","datePublished":"2023-11-14T00:00:00-08:00","description":"TL;DR:","headline":"Notes on vLLM v.s. DeepSpeed","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html"},"url":"http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="vLLM Blog" />
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">vLLM Blog</a></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Notes on vLLM v.s. DeepSpeed</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2023-11-14T00:00:00-08:00" itemprop="datePublished">
+        Nov 14, 2023
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">vLLM Team</span></span></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <hr />
+<p><strong>TL;DR:</strong></p>
+
+<ul>
+  <li>vLLM matches DeepSpeed’s speed in common scenarios and surpasses it when handling longer outputs.</li>
+  <li>DeepSpeed only outperforms vLLM in scenarios with long prompts and short outputs, due to its Dynamic SplitFuse optimization. This optimization is on vLLM’s roadmap.</li>
+  <li>vLLM’s mission is to build the fastest and easiest-to-use open-source LLM inference and serving engine. It is Apache 2.0 and community-owned, offering extensive model and optimization support.</li>
+</ul>
+
+<hr />
+
+<p>The DeepSpeed team recently published <a href="https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-fastgen">a blog post</a> claiming 2x throughput improvement over vLLM, achieved by leveraging the Dynamic SplitFuse technique.
+We are happy to see the technology advancements from the open-source community.
+In this blog, we show the specific scenarios where the Dynamic SplitFuse technique is advantageous, noting that these cases are relatively limited.
+For the majority of workloads, vLLM is faster than (or performs comparably to) DeepSpeed MII.</p>
+
+<h3 id="performance-benchmark">Performance Benchmark</h3>
+
+<p>We’ve identified two key differences between vLLM and DeepSpeed in terms of performance optimization:</p>
+
+<ol>
+  <li>DeepSpeed adopts a conservative/suboptimal memory allocation scheme, which wastes memory when output lengths are large.</li>
+  <li>DeepSpeed’s Dynamic SplitFuse scheduling gives speedup only when prompt lengths are much greater than output lengths.</li>
+</ol>
+
+<p>As a result, DeepSpeed outperforms when the workload is consistently long prompt and short output.
+In other scenarios, vLLM shows superior performance.</p>
+
+<h4 id="scenario-1-long-prompt-length-short-output">Scenario 1: Long Prompt Length, Short Output</h4>
+<p>Here, DeepSpeed’s Dynamic SplitFuse scheduling is expected to shine.
+However, the performance gain we observe isn’t as significant as 2x.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/notes-vllm-vs-deepspeed/s1.png" width="50%" />
+</picture>
+</p>
+
+<h4 id="scenario-2-other-cases">Scenario 2: Other cases</h4>
+<p>In these cases, vLLM is up to 1.8x faster than DeepSpeed.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/notes-vllm-vs-deepspeed/s2.png" width="50%" />
+</picture>
+</p>
+
+<h3 id="vllms-future-a-true-community-project">vLLM’s Future: A True Community Project</h3>
+<p>We are committed to making vLLM the best open-source project incorporating the community’s best models, optimizations, and hardware. Coming out of UC Berkeley Sky Computing Lab, we are building vLLM truly in open source with the Apache 2.0 license.</p>
+
+<p>The vLLM team prioritizes collaborations and we strive to keep the codebase with high quality code and easy to contribute. We are actively working on system performance; as well as new features like LoRA, Speculative Decoding, and better Quantization Support. Additionally, we are collaborating with hardware vendors like AMD, AWS Inferenetia, and Intel Habana to bring LLM to the broadest community.</p>
+
+<p>Specifically for the Dynamic SplitFuse optimization, we are actively investigating the proper integration. If you have any questions and suggestions, please feel free to contact us on <a href="https://github.com/vllm-project/vllm">GitHub</a>. We also published the benchmark code <a href="https://github.com/vllm-project/vllm/blob/main/benchmarks/benchmark_throughput.py">here</a>.</p>
+
+<h3 id="appendix-feature-comparison">Appendix: Feature Comparison</h3>
+
+<p>DeepSpeed currently offers basic functionalities, supporting only three model types and lacking popular features like stop strings and parallel sampling (e.g., beam search).
+We do expect the DeepSpeed open source are eager to catch up and we welcome the creative innovation in the market!</p>
+
+<table>
+  <thead>
+    <tr>
+      <th> </th>
+      <th style="text-align: center">vLLM</th>
+      <th style="text-align: center">DeepSpeed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Runtime</td>
+      <td style="text-align: center">Python/PyTorch</td>
+      <td style="text-align: center">Python/PyTorch</td>
+    </tr>
+    <tr>
+      <td>Model implementation</td>
+      <td style="text-align: center">HuggingFace Transformers</td>
+      <td style="text-align: center">Custom implementation + converter for HF models</td>
+    </tr>
+    <tr>
+      <td>Server frontend</td>
+      <td style="text-align: center">Simple FastAPI server for demo purposes</td>
+      <td style="text-align: center">Custom gRPC-based server</td>
+    </tr>
+    <tr>
+      <td>Scheduling</td>
+      <td style="text-align: center">Continuous batching</td>
+      <td style="text-align: center">Dynamic SplitFuse</td>
+    </tr>
+    <tr>
+      <td>Attention kernel</td>
+      <td style="text-align: center">PagedAttention &amp; FlashAttention</td>
+      <td style="text-align: center">PagedAttention &amp; FlashAttention</td>
+    </tr>
+    <tr>
+      <td>Custom kernels (for LLaMA)</td>
+      <td style="text-align: center">Attention, RoPE, RMS, SILU</td>
+      <td style="text-align: center">Attention, RoPE, RMS, SILU, Embedding</td>
+    </tr>
+    <tr>
+      <td>KV Cache allocation</td>
+      <td style="text-align: center">Near-optimal</td>
+      <td style="text-align: center">Suboptimal/conservative</td>
+    </tr>
+    <tr>
+      <td>Supported models</td>
+      <td style="text-align: center">16 different architectures</td>
+      <td style="text-align: center">LLaMA, Mistral, OPT</td>
+    </tr>
+    <tr>
+      <td>Sampling methods</td>
+      <td style="text-align: center">Random, parallel, beam search</td>
+      <td style="text-align: center">Random</td>
+    </tr>
+    <tr>
+      <td>Stop criterion</td>
+      <td style="text-align: center">Stop strings, stop tokens, EOS</td>
+      <td style="text-align: center">EOS</td>
+    </tr>
+  </tbody>
+</table>
+
+  </div><a class="u-url" href="/2023/11/14/notes-vllm-vs-deepspeed.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <!-- <p class="feed-subscribe">
+          <a href="http://localhost:4000/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p> -->
+        <ul class="contact-list">
+          <li class="p-name">© 2023. vLLM Team. All rights reserved.</li>
+          <li><a class="u-email" href="mailto:https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
