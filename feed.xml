@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2023-11-14T15:00:34-08:00</updated><id>/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2023. vLLM Team. All rights reserved.</name><email>https://github.com/vllm-project/vllm</email></author><entry><title type="html">Notes on vLLM v.s. DeepSpeed-FastGen</title><link href="/2023/11/14/notes-vllm-vs-deepspeed.html" rel="alternate" type="text/html" title="Notes on vLLM v.s. DeepSpeed-FastGen" /><published>2023-11-14T00:00:00-08:00</published><updated>2023-11-14T00:00:00-08:00</updated><id>/2023/11/14/notes-vllm-vs-deepspeed</id><content type="html" xml:base="/2023/11/14/notes-vllm-vs-deepspeed.html"><![CDATA[<hr />
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2023-11-14T15:12:14-08:00</updated><id>/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2023. vLLM Team. All rights reserved.</name><email>https://github.com/vllm-project/vllm</email></author><entry><title type="html">Notes on vLLM v.s. DeepSpeed-FastGen</title><link href="/2023/11/14/notes-vllm-vs-deepspeed.html" rel="alternate" type="text/html" title="Notes on vLLM v.s. DeepSpeed-FastGen" /><published>2023-11-14T00:00:00-08:00</published><updated>2023-11-14T00:00:00-08:00</updated><id>/2023/11/14/notes-vllm-vs-deepspeed</id><content type="html" xml:base="/2023/11/14/notes-vllm-vs-deepspeed.html"><![CDATA[<hr />
 <p><strong>TL;DR:</strong></p>
 
 <ul>
@@ -25,6 +25,8 @@ For the majority of workloads, vLLM is faster than (or performs comparably to) D
 
 <p>As a result, DeepSpeed-FastGen outperforms when the workload is consistently long prompt and short output.
 In other scenarios, vLLM shows superior performance.</p>
+
+<p>We benchmarked the two systems on an NVIDIA A100-80GB GPU with the LLaMA-7B model in the following scenarios:</p>
 
 <h4 id="scenario-1-long-prompt-length-short-output">Scenario 1: Long Prompt Length, Short Output</h4>
 <p>Here, DeepSpeed-FastGen’s Dynamic SplitFuse scheduling is expected to shine.
