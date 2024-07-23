@@ -1,4 +1,74 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.2">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2023-11-14T16:44:45-08:00</updated><id>/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2023. vLLM Team. All rights reserved.</name></author><entry><title type="html">Notes on vLLM v.s. DeepSpeed-FastGen</title><link href="/2023/11/14/notes-vllm-vs-deepspeed.html" rel="alternate" type="text/html" title="Notes on vLLM v.s. DeepSpeed-FastGen" /><published>2023-11-14T00:00:00-08:00</published><updated>2023-11-14T00:00:00-08:00</updated><id>/2023/11/14/notes-vllm-vs-deepspeed</id><content type="html" xml:base="/2023/11/14/notes-vllm-vs-deepspeed.html"><![CDATA[<hr />
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-07-23T07:57:17-07:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">Announcing Llama 3.1 Support in vLLM</title><link href="http://localhost:4000/2024/07/23/llama31.html" rel="alternate" type="text/html" title="Announcing Llama 3.1 Support in vLLM" /><published>2024-07-23T00:00:00-07:00</published><updated>2024-07-23T00:00:00-07:00</updated><id>http://localhost:4000/2024/07/23/llama31</id><content type="html" xml:base="http://localhost:4000/2024/07/23/llama31.html"><![CDATA[<p>Today, the vLLM team is excited to partner with Meta to announce the support for the Llama 3.1 model series. Llama 3.1 comes with exciting new features with longer context length (up to 128K tokens), larger model size (up to 405B parameters), and more advanced model capabilities. The vLLM community has added many enhancements to make sure the longer, larger Llamas run smoothly on vLLM, which includes chunked prefill, FP8 quantization, and pipeline parallelism. We will introduce these new enhancements in this blogpost.</p>
+
+<h3 id="introduction">Introduction</h3>
+
+<p>vLLM is a fast, easy-to-use, open-source serving engine for large language models. vLLM has support for more than 40 types of open-source LLMs, a diverse set of hardware platforms (Nvidia GPU, AMD GPU, AWS Inferentia, Google TPU, Intel CPU, GPU, Gaudi, …) and all kinds of inference optimizations. Learn more about vLLM <a href="https://docs.vllm.ai/">here</a>.</p>
+
+<p>For the new Llama 3.1 series, vLLM can run the models with a full 128K context window. In order to support a large context window, vLLM automatically enables <a href="https://www.linkedin.com/posts/joinanyscale_recently-weve-contributed-chunked-prefill-activity-7201277641490849792-lGqZ">chunked prefill</a>. Chunked prefill not only keeps memory usage under control, but also reduces the interruption from long prompt processing for ongoing requests. You can install vLLM by running the following command or using our official docker image (<code class="language-plaintext highlighter-rouge">vllm/vllm-openai</code>):</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-U</span> vllm
+</code></pre></div></div>
+
+<p>For the large Llama 405B model, vLLM supports it in several methods:</p>
+<ul>
+  <li><strong>FP8:</strong> vLLM runs the official FP8 quantized model natively on 8xA100 or 8xH100.</li>
+  <li><strong>Pipeline Parallelism:</strong> vLLM runs the official BF16 version on multiple nodes by placing different layers of the model on different nodes.</li>
+  <li><strong>Tensor Parallelism:</strong> vLLM can also run by sharding the model across multiple nodes, and multiple GPUs within the nodes.</li>
+  <li><strong>AMD MI300x or NVIDIA H200:</strong> vLLM can run the model on a single 8xMI300x or 8xH200 machine, where each GPU has 192GB and 141 GB memory, respectively.</li>
+  <li><strong>CPU Offloading:</strong> as the last resort, vLLM can offload some of the weights to CPU while performing the forward pass, allowing you to run the large model at full precision on limited GPU memory.</li>
+</ul>
+
+<p>Please note that while vLLM supports all these methods, the performance is still preliminary. The vLLM community is actively working on optimizations and we welcome everyone’s contribution. For example, we are actively exploring more approaches to quantize the model, and to increase the throughput of pipeline parallelism. The performance numbers posted later in the blog are meant as early reference points; we expect the performance to improve significantly over the next few weeks.</p>
+
+<p>Out of all the methods, we recommend FP8 for a single node, and pipeline parallelism for multiple nodes. Let’s discuss them in more detail.</p>
+
+<h3 id="fp8">FP8</h3>
+
+<p>FP8 represents float point numbers in 8 bits. The current generation of GPUs (H100, MI300x) provide native support for FP8 via specialized tensor cores. Currently, vLLM can run FP8 quantized models for KV cache, attention, and MLP layers. This reduces memory footprint, increases throughput, lowers latency, and comes with minimal accuracy drops.</p>
+
+<p>Currently, vLLM supports the official Meta Llama 3.1 405B FP8 model quantized via FBGEMM by leveraging per-channel quantization in the MLP layer. In particular, each channel of the up/gate/down projections are quantized and multiplied by a static scaling factor. Combined with skipping quantization for the first and the last layer, and a static upper bound, this approach has minimal impact on the model’s accuracy. You can run the model with latest vLLM on a single 8xH100 or 8xA100 with the following command:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vllm serve meta-llama/Meta-Llama-3.1-405B-Instruct-FP8 <span class="nt">--tensor-parallel-size</span> 8
+</code></pre></div></div>
+
+<p>Using the FP8 quantized model serving requests with the average input length of 1024 tokens and the average output length of 128 output tokens, the server can sustain 2.82 requests per second. The corresponding serving throughput is 2884.86 input tokens per second and 291.53 output tokens per seconds, respectively.</p>
+
+<p>We also independently confirmed the accuracy drop of the FP8 checkpoints is minimal. For example, running the GSM8K benchmark using lm-eval-harness with 8 shots and chain-of-thought, we observed the exact match score of 95.38% (+- 0.56% stddev), which is a minimal drop compared to the BF16 official score of 96.8%.</p>
+
+<h3 id="pipeline-parallelism">Pipeline Parallelism</h3>
+
+<p>What if you want to run the Llama 3.1 405B model without quantization? You can do it with 16xH100 or 16xA100 GPUs using vLLM’s pipeline parallelism!</p>
+
+<p>Pipeline parallelism splits a model into smaller sets of layers, executing them in parallel on two or more nodes in a pipelined fashion. Unlike tensor parallelism, which requires expensive all-reduce operations, pipeline parallelism partitions the model across layer boundaries, needing only inexpensive point-to-point communication. This is particularly useful when you have multiple nodes that are not necessarily connected via fast interconnects like Infiniband.</p>
+
+<p>vLLM supports combining pipeline and tensor parallelism. For example, with 16 GPUs across 2 nodes, you can use 2-way pipeline parallelism and 8-way tensor parallelism to optimize hardware usage. This configuration maps half the model to each node, partitioning each layer across 8 GPUs using NVLink for all-reduce operations. You can run the Llama 3.1 405B model with the following command:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vllm serve meta-llama/Meta-Llama-3.1-405B-Instruct <span class="nt">--tensor-parallel-size</span> 8 <span class="nt">--pipeline-parallel-size</span> 2
+</code></pre></div></div>
+
+<p>If you have fast interconnects like Infiniband, you can use 16-way tensor parallelism:</p>
+
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vllm serve meta-llama/Meta-Llama-3.1-405B-Instruct <span class="nt">--tensor-parallel-size</span> 16
+</code></pre></div></div>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/llama31/perf_llama3.png" width="50%" />
+</picture>
+<br />Serving throughput on 16xH100 GPUs with a synthetic dataset (avg. input len 1024, avg. output len 128).
+</p>
+
+<p>We have observed that pipeline parallelism is essential when the nodes are not connected via Infiniband. Compared to 16-way tensor parallelism, combining 2-way pipeline parallelism with 8-way tensor parallelism leads to 6.6x performance improvements. On the other hand, with Infiniband, the performance of both configurations is similar.</p>
+
+<p>To learn more about distributed inference using vLLM please refer to <a href="https://docs.vllm.ai/en/latest/serving/distributed_serving.html">this doc</a>. For CPU offloading, please refer to <a href="https://docs.vllm.ai/en/latest/getting_started/examples/cpu_offload.html">this example</a>.</p>
+
+<p><br /></p>
+
+<hr />
+
+<h3 id="acknowledgements">Acknowledgements</h3>
+
+<p>We would like to thank Meta for the pre-release partnership and letting us test the model. Independently from the release, we thank the following vLLM contributors for the features mentioned in this blogpost: <a href="https://neuralmagic.com/">NeuralMagic</a> for FP8 quantization; <a href="https://centml.ai/">CentML</a> for pipeline parallelism; <a href="https://www.anyscale.com/">Anyscale</a> for the chunked prefill feature. The evaluation runs on <a href="https://lambdalabs.com/service/gpu-cloud/1-click-clusters">Lambda’s 1-Click Clusters</a> with InfiniBand, and we thank Lambda Labs for the resource and the smooth cluster setup experience.</p>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[Today, the vLLM team is excited to partner with Meta to announce the support for the Llama 3.1 model series. Llama 3.1 comes with exciting new features with longer context length (up to 128K tokens), larger model size (up to 405B parameters), and more advanced model capabilities. The vLLM community has added many enhancements to make sure the longer, larger Llamas run smoothly on vLLM, which includes chunked prefill, FP8 quantization, and pipeline parallelism. We will introduce these new enhancements in this blogpost.]]></summary></entry><entry><title type="html">Notes on vLLM v.s. DeepSpeed-FastGen</title><link href="http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html" rel="alternate" type="text/html" title="Notes on vLLM v.s. DeepSpeed-FastGen" /><published>2023-11-14T00:00:00-08:00</published><updated>2023-11-14T00:00:00-08:00</updated><id>http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed</id><content type="html" xml:base="http://localhost:4000/2023/11/14/notes-vllm-vs-deepspeed.html"><![CDATA[<hr />
 <p><strong>TL;DR:</strong></p>
 
 <ul>
@@ -119,7 +189,7 @@ We do expect the DeepSpeed-FastGen is eager to catch up and we welcome the creat
       <td style="text-align: center">EOS</td>
     </tr>
   </tbody>
-</table>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[TL;DR:]]></summary></entry><entry><title type="html">vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention</title><link href="/2023/06/20/vllm.html" rel="alternate" type="text/html" title="vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention" /><published>2023-06-20T00:00:00-07:00</published><updated>2023-06-20T00:00:00-07:00</updated><id>/2023/06/20/vllm</id><content type="html" xml:base="/2023/06/20/vllm.html"><![CDATA[<p align="center" style="margin-top:-15px">
+</table>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[TL;DR:]]></summary></entry><entry><title type="html">vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention</title><link href="http://localhost:4000/2023/06/20/vllm.html" rel="alternate" type="text/html" title="vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention" /><published>2023-06-20T00:00:00-07:00</published><updated>2023-06-20T00:00:00-07:00</updated><id>http://localhost:4000/2023/06/20/vllm</id><content type="html" xml:base="http://localhost:4000/2023/06/20/vllm.html"><![CDATA[<p align="center" style="margin-top:-15px">
 <a href="https://github.com/vllm-project/vllm"><b>GitHub</b></a> | <a href="https://vllm.readthedocs.io/en/latest/"><b>Documentation</b></a> | <a href="https://arxiv.org/pdf/2309.06180.pdf"><b>Paper</b></a>
 </p>
 
