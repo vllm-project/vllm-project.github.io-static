@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>vLLM’s Open Governance and Performance Roadmap | vLLM Blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="vLLM’s Open Governance and Performance Roadmap" />
+<meta name="author" content="vLLM Team" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="We would like to share two updates to the vLLM community." />
+<meta property="og:description" content="We would like to share two updates to the vLLM community." />
+<meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-07-25T00:00:00-07:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="vLLM’s Open Governance and Performance Roadmap" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2024-07-25T00:00:00-07:00","datePublished":"2024-07-25T00:00:00-07:00","description":"We would like to share two updates to the vLLM community.","headline":"vLLM’s Open Governance and Performance Roadmap","mainEntityOfPage":{"@type":"WebPage","@id":"/2024/07/25/lfai-perf.html"},"url":"/2024/07/25/lfai-perf.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="vLLM Blog" />
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">vLLM Blog</a></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">vLLM’s Open Governance and Performance Roadmap</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2024-07-25T00:00:00-07:00" itemprop="datePublished">
+        Jul 25, 2024
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">vLLM Team</span></span></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>We would like to share two updates to the vLLM community.</p>
+
+<h3 id="future-of-vllm-is-open">Future of vLLM is Open</h3>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/lfai/vllm-lfai-light.png" width="60%" />
+</picture>
+</p>
+
+<p>We are excited to see vLLM is becoming the standard for LLM inference and serving. In the recent <a href="https://ai.meta.com/blog/meta-llama-3-1/">Meta Llama 3.1 announcement</a>, 8 out of 10 official partners for real time inference run vLLM as the serving engine for the Llama 3.1 models. We have also heard anecdotally that vLLM is being used in many of the AI features in our daily life.</p>
+
+<p>We believe vLLM’s success comes from the power of the strong open source community. vLLM is actively maintained by a consortium of groups such as UC Berkeley, Anyscale, AWS, CentML, IBM, Neural Magic, Roblox, and others. To this extent, we want to ensure the ownership and governance of the project is open and transparent as well.</p>
+
+<p>We are excited to announce that vLLM has <a href="https://lfaidata.foundation/blog/2024/07/17/lf-ai-data-foundation-mid-year-review-significant-growth-in-the-first-half-of-2024/?hss_channel=tw-976478457881247745">started the incubation process into LF AI &amp; Data Foundation</a>. This means no one party will have exclusive control over the future of vLLM. The license and trademark will be irrevocably open. You can trust vLLM is here to stay and will be actively maintained and improved going forward.</p>
+
+<h3 id="performance-is-top-priority">Performance is top priority</h3>
+
+<p>The vLLM contributor is doubling down to ensure vLLM is a fastest and easiest-to-use LLM inference and serving engine.</p>
+
+<p>To recall our roadmap, we focus vLLM on six objectives: wide model coverage, broad hardware support, top performance, production-ready, thriving open source community, and extensible architecture.</p>
+
+<p>In our objective for performance optimization, we have made the following progress to date:</p>
+
+<ul>
+  <li>Publication of benchmarks
+    <ul>
+      <li>Published per-commit performance tracker at <a href="https://perf.vllm.ai">perf.vllm.ai</a> on our public benchmarks. The goal of this is to track performance enhancement and regressions.</li>
+      <li>Published reproducible benchmark (<a href="https://docs.vllm.ai/en/latest/performance_benchmark/benchmarks.html">docs</a>) of vLLM compared to LMDeploy, TGI, and TensorRT-LLM. The goal is to identify gaps in performance and close them.</li>
+    </ul>
+  </li>
+  <li>Development and integration of highly optimized kernels
+    <ul>
+      <li>Integrated FlashAttention2 with PagedAttention, and <a href="https://github.com/flashinfer-ai/flashinfer">FlashInfer</a>. We plan to integrate <a href="https://github.com/vllm-project/vllm/issues/6348">FlashAttention3</a>.</li>
+      <li>Integrating <a href="https://arxiv.org/abs/2406.06858v1">Flux</a> which overlaps computation and collective communication.</li>
+      <li>Developed state of the art kernels for quantized inference, including INT8 and FP8 activation quantization (via cutlass) and INT4, INT8, and FP8 weight-only quantization for GPTQ and AWQ (via marlin).</li>
+    </ul>
+  </li>
+  <li>Started several work streams to lower critical overhead
+    <ul>
+      <li>We identified vLLM’s synchronous and blocking scheduler is a key bottleneck for models running on fast GPUs (H100s). We are working on making the schedule asynchronous and plan steps ahead of time.</li>
+      <li>We identified vLLM’s OpenAI-compatible API frontend has higher than desired overhead. <a href="https://github.com/vllm-project/vllm/issues/6797">We are working on isolating it from the critical path of scheduler and model inference. </a></li>
+      <li>We identified vLLM’s input preparation, and output processing scale suboptimally with the data size. Many of the operations can be vectorized and enhanced by moving them off the critical path.</li>
+    </ul>
+  </li>
+</ul>
+
+<p>We will continue to update the community in vLLM’s progress in closing the performance gap. You can track our overall progress <a href="https://github.com/vllm-project/vllm/issues/6801">here</a>. Please continue to suggest new ideas and contribute with your improvements!</p>
+
+<h3 id="more-resources">More Resources</h3>
+
+<p>We would like to highlight the following RPCs being actively developed</p>
+
+<ul>
+  <li><a href="https://github.com/vllm-project/vllm/issues/6556">Single Program Multiple Data (SPMD) Worker Control Plane</a> reduces complexity and enhances performance of tensor parallel performance.</li>
+  <li><a href="https://github.com/vllm-project/vllm/issues/6378">A Graph Optimization System in vLLM using torch.compile</a> brings in PyTorch native compilation workflow for kernel fusion and compilation.</li>
+  <li><a href="https://github.com/vllm-project/vllm/issues/5557">Implement disaggregated prefilling via KV cache transfer</a> is critical for workload with long input and lowers variance in inter-token latency.</li>
+</ul>
+
+<p>There is a thriving research community building their research projects on top of vLLM. We are deeply humbled by the impressive works and would love to collaborate and integrate. The list of papers includes but is not limited to:</p>
+
+<ul>
+  <li><a href="https://www.usenix.org/conference/osdi24/presentation/agrawal">Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve</a></li>
+  <li><a href="https://arxiv.org/abs/2407.00079">Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving</a></li>
+  <li><a href="https://arxiv.org/abs/2406.03243">Llumnix: Dynamic Scheduling for Large Language Model Serving</a></li>
+  <li><a href="https://arxiv.org/abs/2310.07240">CacheGen: KV Cache Compression and Streaming for Fast Large Language Model Serving</a></li>
+  <li><a href="https://arxiv.org/abs/2405.04437">vAttention: Dynamic Memory Management for Serving LLMs without PagedAttention</a></li>
+  <li><a href="https://arxiv.org/abs/2404.16283">Andes: Defining and Enhancing Quality-of-Experience in LLM-Based Text Streaming Services</a></li>
+  <li><a href="https://arxiv.org/abs/2312.07104">SGLang: Efficient Execution of Structured Language Model Programs</a></li>
+</ul>
+
+
+  </div><a class="u-url" href="/2024/07/25/lfai-perf.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <!-- <p class="feed-subscribe">
+          <a href="/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p> -->
+        <ul class="contact-list">
+          <li class="p-name">© 2024. vLLM Team. All rights reserved.</li>
+          <li><a href="https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
