@@ -8,8 +8,8 @@
 <meta property="og:title" content="vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction" />
 <meta name="author" content="vLLM Team" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="TL;DR: vLLM achieves 2.7x higher throughput and 5x less TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model." />
-<meta property="og:description" content="TL;DR: vLLM achieves 2.7x higher throughput and 5x less TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model." />
+<meta name="description" content="TL;DR: vLLM achieves 2.7x higher throughput and 5x faster TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model." />
+<meta property="og:description" content="TL;DR: vLLM achieves 2.7x higher throughput and 5x faster TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model." />
 <link rel="canonical" href="http://localhost:4000/2024/09/05/perf-update.html" />
 <meta property="og:url" content="http://localhost:4000/2024/09/05/perf-update.html" />
 <meta property="og:site_name" content="vLLM Blog" />
@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2024-09-05T00:00:00-07:00","datePublished":"2024-09-05T00:00:00-07:00","description":"TL;DR: vLLM achieves 2.7x higher throughput and 5x less TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model.","headline":"vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/09/05/perf-update.html"},"url":"http://localhost:4000/2024/09/05/perf-update.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2024-09-05T00:00:00-07:00","datePublished":"2024-09-05T00:00:00-07:00","description":"TL;DR: vLLM achieves 2.7x higher throughput and 5x faster TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model.","headline":"vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/09/05/perf-update.html"},"url":"http://localhost:4000/2024/09/05/perf-update.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="vLLM Blog" />
 </head>
@@ -38,7 +38,7 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p><strong>TL;DR:</strong> vLLM achieves 2.7x higher throughput and 5x less TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model.</p>
+    <p><strong>TL;DR:</strong> vLLM achieves 2.7x higher throughput and 5x faster TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model.</p>
 
 <p align="center">
 <picture>
@@ -180,7 +180,7 @@ Illustration of the asynchronous output processing in vLLM. By overlapping the C
 Across different workloads, vLLM achieves high throughput compared to other frameworks, for Llama 8B and 70B on H100.
 </p>
 
-<p>For the rest of performance benchmarks, as well as captured detailed metrics for time-to-first-token (TTFT) and time-per-output-token (TPOT), please refer to the appendix for more data and analysis. You can follow <a href="https://github.com/vllm-project/vllm/issues/8176">this github issue</a> to reproduce our benchmark.</p>
+<p>For the rest of performance benchmarks, as well as captured detailed metrics for time-to-first-token (TTFT) and time-per-output-token (TPOT), please refer to the <a href="#appendix">appendix</a> for more data and analysis. You can follow <a href="https://github.com/vllm-project/vllm/issues/8176">this github issue</a> to reproduce our benchmark.</p>
 
 <h3 id="conclusion--future-work">Conclusion &amp; Future Work</h3>
 
@@ -194,7 +194,7 @@ Across different workloads, vLLM achieves high throughput compared to other fram
 
 <p>If you are in the Bay Area, you can meet the vLLM team at the following events: <a href="https://lu.ma/87q3nvnh">vLLM’s sixth meetup with NVIDIA(09/09)</a>, <a href="https://pytorch2024.sched.com/event/1fHmx/vllm-easy-fast-and-cheap-llm-serving-for-everyone-woosuk-kwon-uc-berkeley-xiaoxuan-liu-ucb">PyTorch Conference (09/19)</a>, <a href="https://events.accel.com/cudamode">CUDA MODE IRL meetup (09/21)</a>, and <a href="https://raysummit.anyscale.com/flow/anyscale/raysummit2024/landing/page/sessioncatalog?search.sessiontracks=1719251906298001uzJ2">the first ever vLLM track at Ray Summit (10/01-02)</a>.</p>
 
-<p>Regardless where you are, don’t forget to sign up for the <a href="https://neuralmagic.com/community-office-hours/">biweekly vLLM office hours</a>! There are always new topics discussed every two weeks. The next one will be a deep dive into the performance enhancements.</p>
+<p>Regardless where you are, don’t forget to sign up for the online <a href="https://neuralmagic.com/community-office-hours/">biweekly vLLM office hours</a>! There are always new topics discussed every two weeks. The next one will be a deep dive into the performance enhancements.</p>
 
 <h3 id="acknowledgment">Acknowledgment</h3>
 
