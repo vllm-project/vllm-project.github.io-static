@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-09-05T11:37:05-07:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction</title><link href="http://localhost:4000/2024/09/05/perf-update.html" rel="alternate" type="text/html" title="vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction" /><published>2024-09-05T00:00:00-07:00</published><updated>2024-09-05T00:00:00-07:00</updated><id>http://localhost:4000/2024/09/05/perf-update</id><content type="html" xml:base="http://localhost:4000/2024/09/05/perf-update.html"><![CDATA[<p><strong>TL;DR:</strong> vLLM achieves 2.7x higher throughput and 5x faster TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-09-06T09:58:32-07:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction</title><link href="http://localhost:4000/2024/09/05/perf-update.html" rel="alternate" type="text/html" title="vLLM v0.6.0: 2.7x Throughput Improvement and 5x Latency Reduction" /><published>2024-09-05T00:00:00-07:00</published><updated>2024-09-05T00:00:00-07:00</updated><id>http://localhost:4000/2024/09/05/perf-update</id><content type="html" xml:base="http://localhost:4000/2024/09/05/perf-update.html"><![CDATA[<p><strong>TL;DR:</strong> vLLM achieves 2.7x higher throughput and 5x faster TPOT (time per output token) on Llama 8B model, and 1.8x higher throughput and 2x less TPOT on Llama 70B model.</p>
 
 <p align="center">
 <picture>
@@ -100,7 +100,7 @@ Illustration of the asynchronous output processing in vLLM. By overlapping the C
 
 <p>With the above efforts, we are happy to share that vLLM’s performance has improved a lot compared with last month’s vLLM. And it reaches state-of-the-art performance according to our performance benchmarks.</p>
 
-<p><strong>Serving engines.</strong> We benchmark the vLLM v0.6.0 against TensorRT-LLM r24.07, SGLang v0.3.0, and lmdeploy v0.6.0a0. For vLLM, we have turned on multistep scheduling via setting <code class="language-plaintext highlighter-rouge">--num-scheduler-steps 10</code>. We are actively working on making it on by default.</p>
+<p><strong>Serving engines.</strong> We benchmark the vLLM v0.6.0 against TensorRT-LLM r24.07, SGLang v0.3.0, and lmdeploy v0.6.0a0. For other benchmarks, we use their default setting. For vLLM, we have turned on multistep scheduling via setting <code class="language-plaintext highlighter-rouge">--num-scheduler-steps 10</code>. We are actively working on making it on by default.</p>
 
 <p><strong>Dataset.</strong> We benchmark different serving engines using the following three datasets:</p>
 
@@ -143,6 +143,13 @@ Across different workloads, vLLM achieves high throughput compared to other fram
 </p>
 
 <p>For the rest of performance benchmarks, as well as captured detailed metrics for time-to-first-token (TTFT) and time-per-output-token (TPOT), please refer to the <a href="#appendix">appendix</a> for more data and analysis. You can follow <a href="https://github.com/vllm-project/vllm/issues/8176">this github issue</a> to reproduce our benchmark.</p>
+
+<p><strong>Limitation of current optimizations.</strong> Although our current optimizations give a significant throughput gain, there are performance trade-offs from our current optimizations, especially from multi-step scheduling:</p>
+
+<ul>
+  <li><em>Bumpy inter-token latency:</em> In our current implementation of multi-step scheduling, we also return the output tokens for multiple steps in a batch. From an end-user’s perspective, they will receive batches of tokens being replied. We are fixing this by streaming the intermediate tokens back to the engine.</li>
+  <li><em>Higher TTFT at low request rate:</em> A new request can only start execution after the current multi-step execution finishes. Therefore, higher <code class="language-plaintext highlighter-rouge">--num-scheduler-steps</code> will lead to higher TTFT at low request rates. Our experiments focus on the queueing delay at high QPS so this effect is not significant in the results in the appendix.</li>
+</ul>
 
 <h3 id="conclusion--future-work">Conclusion &amp; Future Work</h3>
 
