@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Serving LLMs on AMD MI300X: Best Practices | vLLM Blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="Serving LLMs on AMD MI300X: Best Practices" />
+<meta name="author" content="Guest Post by Embedded LLM and Hot Aisles Inc." />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide." />
+<meta property="og:description" content="TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide." />
+<meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-10-23T00:00:00-07:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Serving LLMs on AMD MI300X: Best Practices" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Guest Post by Embedded LLM and Hot Aisles Inc."},"dateModified":"2024-10-23T00:00:00-07:00","datePublished":"2024-10-23T00:00:00-07:00","description":"TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide.","headline":"Serving LLMs on AMD MI300X: Best Practices","mainEntityOfPage":{"@type":"WebPage","@id":"/2024/10/23/vllm-serving-amd.html"},"url":"/2024/10/23/vllm-serving-amd.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
+<script>
+  window['ga-disable-G-9C5R3JR3QS'] = window.doNotTrack === "1" || navigator.doNotTrack === "1" || navigator.doNotTrack === "yes" || navigator.msDoNotTrack === "1";
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){window.dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9C5R3JR3QS');
+</script>
+
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">vLLM Blog</a></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Serving LLMs on AMD MI300X: Best Practices</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2024-10-23T00:00:00-07:00" itemprop="datePublished">
+        Oct 23, 2024
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">Guest Post by Embedded LLM and Hot Aisles Inc.</span></span></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p><strong>TL;DR:</strong> vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the <a href="#quick-start-guide">Quick Start Guide</a>.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/405b1.png" width="35%" />
+</picture><picture>
+&nbsp; &nbsp;
+<img src="/assets/figures/vllm-serving-amd/405b2.png" width="35%" />
+</picture><br />
+vLLM vs. TGI performance comparison for Llama 3.1 405B on 8 x MI300X (FP16, 32 QPS).
+</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/70b1.png" width="35%" />
+</picture><picture>
+&nbsp; &nbsp;
+<img src="/assets/figures/vllm-serving-amd/70b2.png" width="35%" />
+</picture><br />
+vLLM vs. TGI performance comparison for Llama 3.1 70B on 8 x MI300X (FP16, 32 QPS).
+</p>
+
+<h3 id="introduction">Introduction</h3>
+
+<p>Meta recently announced they’re running 100% of their live Llama 3.1 405B model traffic on AMD MI300X GPUs, showcasing the power and readiness of AMD’s ROCm platform for large language model (LLM) inference. This exciting news coincides with the release of ROCm 6.2, which brings significant improvements to vLLM support, making it easier than ever to harness the power of AMD GPUs for LLM inference.</p>
+
+<p>ROCm, AMD’s answer to CUDA, might be less familiar to some, but it’s rapidly maturing as a robust and performant alternative.  With vLLM, harnessing this power is easier than ever.  We’ll show you how.</p>
+
+<h3 id="vllm-vs-tgi">vLLM v.s. TGI</h3>
+
+<p>vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B.</p>
+
+<p>On Llama 3.1 405B, vLLM demonstrates significantly better performance compared to TGI in both time to first token (TTFT) and throughput across various query-per-second (QPS) scenarios. For TTFT, vLLM achieves approximately 3.8x faster response times on average compared to TGI at 16 QPS in the optimized configuration. Throughput-wise, vLLM consistently outperforms TGI, with the highest throughput of 5.76 requests/second on the ShareGPT dataset at 1000 QPS in the optimized setup, compared to TGI’s 3.55 requests/second.</p>
+
+<p>Even in the default configuration, vLLM shows superior performance compared to TGI. For instance, at 16 QPS, vLLM’s default configuration achieves a throughput of 4.05 requests/second versus TGI’s 2.58 requests/second. This performance advantage is maintained across different QPS levels, highlighting vLLM’s efficiency in handling large language model inference tasks.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/introduction/Throughput (Requests per Second).png" width="70%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/introduction/Mean TTFT (ms).png" width="70%" />
+</picture><br />
+vLLM vs. TGI performance for Llama 3.1 405B on 8 x MI300X (FP16, QPS 16, 32, 1000; see Appendix for commands).
+</p>
+
+<h3 id="how-to-run-vllm-with-optimal-performance">How to run vLLM with Optimal Performance</h3>
+
+<h4 id="key-settings-and-configurations">Key Settings and Configurations</h4>
+
+<p>We’ve been extensively testing various vLLM settings to identify optimal configurations for MI300X.  Here’s what we’ve learned:</p>
+
+<ul>
+  <li><strong>Chunked Prefill</strong>: The rule of thumb is to disable it for now on MI300X in most cases for better performance.</li>
+  <li><strong>Multi-Step Scheduling</strong>: Significant gains in GPU utilization and overall performance can be achieved with multi-step scheduling. Set the <code class="language-plaintext highlighter-rouge">--num-scheduler-steps</code> to a value between 10 and 15 to optimize GPU utilization and performance.</li>
+  <li><strong>Prefix Caching</strong>: Combining prefix caching with chunked prefill can enhance performance in specific scenarios. However, if user requests have a low prefix caching hit rate, it might be advisable to disable both chunked prefill and prefix caching.</li>
+  <li><strong>Graph Capture</strong>: When working with models that support long context lengths, set the <code class="language-plaintext highlighter-rouge">--max-seq-len-to-capture</code> to 16384. However, be aware that increasing this value doesn’t always guarantee performance improvements and may sometimes lead to degradation due to suboptimal bucket sizes.</li>
+  <li><strong>AMD-Specific Optimizations</strong>: Disabling NUMA balancing and tuning <code class="language-plaintext highlighter-rouge">NCCL_MIN_NCHANNELS</code> can yield further performance improvements.</li>
+  <li><strong>KV Cache Data Type</strong>: For optimal performance, use the default KV cache data type, which automatically matches the model’s data type.</li>
+  <li><strong>Tensor Parallelism</strong>: For throughput optimization, use the minimum tensor parallelism (TP) that accommodates the model weights and context, and run multiple vLLM instances. For latency optimization, set TP equal to the number of GPUs in a node.</li>
+  <li><strong>Maximum Number of Sequences</strong>: To optimize performance, increase <code class="language-plaintext highlighter-rouge">--max-num-seqs</code> to 512 or higher, based on your GPU’s memory and compute resources. This can significantly improve resource utilization and throughput, especially for models handling shorter inputs and outputs.</li>
+  <li><strong>Use CK Flash Attention</strong>: the CK Flash Attention implementation is a lot faster than triton implementation.</li>
+</ul>
+
+<h4 id="detailed-analysis-and-experiments">Detailed Analysis and Experiments</h4>
+
+<h5 id="case-1-chunked-prefill">Case 1: Chunked Prefill</h5>
+
+<p>Chunked prefill is an experimental feature in vLLM that allows large prefill requests to be divided into smaller chunks batched together with decode requests. This improves system efficiency by overlapping compute-bound prefill requests with memory-bound decode requests. You can enable it by setting <code class="language-plaintext highlighter-rouge">--enable_chunked_prefill=True</code> in the LLM constructor or using the <code class="language-plaintext highlighter-rouge">--enable-chunked-prefill</code> command line option.</p>
+
+<p>Based on the experiment we ran, we found that there’s a slight improvement with tuning the chunked prefill values over disabling the chunked prefill feature. However, if you’re not sure whether to enable chunked prefill or not, simply start off by disabling it and you should generally expect better performance than with using the default settings. This is specific to MI300X GPUs.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case01-chunked-prefill/Requests Per Second.png" width="85%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case01-chunked-prefill/Mean TTFT (ms).png" width="85%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case01-chunked-prefill/Mean TPOT (ms).png" width="85%" />
+</picture><br />
+</p>
+
+<h5 id="case-2-number-of-scheduler-steps">Case 2: Number of scheduler steps</h5>
+
+<p><em>Multi-step scheduling</em> has been introduced In vLLM v0.6.0 promising higher gpu utilization and better overall performance. As detailed in this <a href="https://blog.vllm.ai/2024/09/05/perf-update.html">blog post</a>, the magic behind this performance boost lies in its ability to perform scheduling and input preparation once and run the model for a number of consecutive steps without interrupting the GPU. By cleverly spreading CPU overhead across these steps, it dramatically reduces GPU idle time and supercharges performance.</p>
+
+<p>To enable multi-step scheduling, set the <code class="language-plaintext highlighter-rouge">--num-scheduler-steps</code> argument to a number larger than 1, which is the default value (It’s worth mentioning that we found that using multi-step scheduling can provide diminishing returns the higher it goes up in value, hence, we stick with an upper bound of 15).</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case02-num-scheduler-steps/Requests per Second.png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case02-num-scheduler-steps/Mean TTFT (ms).png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case02-num-scheduler-steps/Mean TPOT (ms).png" width="100%" />
+</picture><br />
+</p>
+
+<h5 id="case-3-chunked-prefill-and-prefix-caching">Case 3: Chunked Prefill and Prefix caching</h5>
+
+<p>Chunked Prefill and prefix caching are optimization techniques in vLLM that improve performance by breaking large prefills into smaller chunks for efficient batching and reusing cached KV (key-value) computations for shared prefixes across queries, respectively.</p>
+
+<p>By default, vLLM will automatically <em>enable the chunked prefill feature if a model has a context length of more than 32k tokens</em>. The maximum number of tokens to be chunked for prefill is set to 512 by default.</p>
+
+<p>Before we dive deep into the graph, we’ll first try to explain the terminology used in the experiment. <strong><em>Fresh Run</em></strong> refers to the situation where the prefix caching memory is not populated at all. <strong><em>2nd Run</em></strong> refers to rerunning the benchmark script again after the <em>Fresh Run</em>. In general, when rerunning the ShareGPT benchmark dataset on the <em>2nd Run</em>, we get around a <em>50%</em> prefix caching hit-rate.</p>
+
+<p>Looking at the graphs below, we can make three observations about this experiment.</p>
+<ol>
+  <li>Based on the comparison of Bar 2 (red) with the baseline (blue), there is a huge gain in performance.</li>
+  <li>Based on the comparison of Bar 3 (yellow), Bar 5 (orange) and Bar 6 (teal) with the baseline, the chunked prefill performance depends on the user request input prompt length distribution.</li>
+  <li>In our experiments we found that the prefix caching hit rates of Bar 3 (yellow) and Bar 4 (green) are around <em>0.9%</em> and <em>50%</em>. Based on the comparison of Bar 3 (yellow) and Bar 4 (green) with the baseline and Bar 2 (red), this tells us that if the user requests do not have high prefix caching hit rate, disabling both chunked prefill and prefix caching might be considered a good rule of thumb.</li>
+</ol>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case03-chunked-prefill-and-prefix-caching/Requests per Second.png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case03-chunked-prefill-and-prefix-caching/Mean TTFT (ms).png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case03-chunked-prefill-and-prefix-caching/Mean TPOT (ms).png" width="100%" />
+</picture><br />
+</p>
+
+<h5 id="case-4-max-sequence-length-to-capture">Case 4: Max sequence length to capture</h5>
+
+<p>The <code class="language-plaintext highlighter-rouge">--max-seq-len-to-capture</code> argument in vLLM controls the maximum sequence length that can be handled by CUDA/HIP graphs, which optimize performance by capturing and replaying GPU operations. If a sequence exceeds this length, the system reverts to eager mode executing operations one by one, which can be less efficient. This applies to both regular and encoder-decoder models.</p>
+
+<p>Our benchmarks reveal an interesting trend: increasing <code class="language-plaintext highlighter-rouge">--max-seq-len-to-capture</code> doesn’t always improve performance and can sometimes even degrade it. This might be due to how vLLM creates buckets for different sequence lengths.</p>
+
+<p>Here’s why:</p>
+<ul>
+  <li><strong>Bucketing</strong>: vLLM uses buckets to group sequences of similar lengths, optimizing graph capture for each bucket.</li>
+  <li><strong>Optimal Buckets</strong>: Initially, the buckets are finely grained (e.g., [4, 8, 12,…, 2048, 4096]), allowing for efficient graph capture for various sequence lengths.</li>
+  <li><strong>Coarser Buckets</strong>: Increasing <code class="language-plaintext highlighter-rouge">--max-seq-len-to-capture</code> can lead to coarser buckets (e.g., [4, 8, 12, 2048, 8192]).</li>
+  <li><strong>Performance Impact</strong>: When input sequences fall into these larger, less precise buckets, the captured CUDA/HIP graphs may not be optimal, potentially leading to reduced performance.</li>
+</ul>
+
+<p>Therefore, while capturing longer sequences with CUDA/HIP graphs seems beneficial, it’s crucial to consider the potential impact on bucketing and overall performance. Finding the optimal <code class="language-plaintext highlighter-rouge">--max-seq-len-to-capture</code> value may require experimentation to balance graph capture efficiency with appropriate bucket sizes for your specific workload.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case04-max-seq-len-to-capture/Requests per Second.png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case04-max-seq-len-to-capture/Mean TTFT (ms).png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case04-max-seq-len-to-capture/Mean TPOT (ms).png" width="100%" />
+</picture><br />
+</p>
+
+<h5 id="case-5-amd-recommended-environmental-variables">Case 5: AMD Recommended Environmental Variables</h5>
+
+<p>To further optimize vLLM performance on AMD MI300X, we can leverage AMD-specific environment variables.</p>
+
+<ul>
+  <li><strong>Disabling NUMA Balancing</strong>: Non-Uniform Memory Access (NUMA) balancing can sometimes hinder GPU performance. As recommended in the <a href="https://github.com/ROCm/MAD/blob/develop/benchmark/vllm/README.md">AMD MAD repository</a>, disabling it can prevent potential GPU hangs and improve overall efficiency. This can be achieved with the following command:
+    <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="c"># disable automatic NUMA balancing</span>
+  sh <span class="nt">-c</span> <span class="s1">'echo 0 &gt; /proc/sys/kernel/numa_balancing'</span>
+  <span class="c"># check if NUMA balancing is disabled (returns 0 if disabled)</span>
+  <span class="nb">cat</span> /proc/sys/kernel/numa_balancing
+  0
+</code></pre></div>    </div>
+  </li>
+  <li><strong>Tuning NCCL Communication</strong>: The NVIDIA Collective Communications Library (NCCL) is used for inter-GPU communication. For MI300X, the <a href="https://github.com/ROCm/vllm/blob/main/ROCm_performance.md">AMD vLLM fork performance document</a> suggests setting the <code class="language-plaintext highlighter-rouge">NCCL_MIN_NCHANNELS</code> environment variable to 112 to potentially enhance performance.</li>
+</ul>
+
+<p>In our tests, enabling these two configurations yielded a slight performance improvement. This aligns with the findings in the <a href="https://arxiv.org/abs/2408.12757">“NanoFlow: Towards Optimal Large Language Model Serving Throughput” paper</a>, which indicates that while optimizing network communication is beneficial, the impact might be limited since LLM inference is primarily dominated by compute-bound and memory-bound operations.</p>
+
+<p>Even though the gains might be small, fine-tuning these environment variables can contribute to squeezing out the maximum performance from your AMD system.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case05-amd-recommended-environmental-variables/Requests Per Second.png" width="75%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case05-amd-recommended-environmental-variables/Mean TTFT (ms).png" width="75%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case05-amd-recommended-environmental-variables/Mean TPOT (ms).png" width="75%" />
+</picture><br />
+</p>
+
+<h5 id="case-6-kvcache-type-autofp8">Case 6: KVCache Type Auto/FP8</h5>
+
+<p>By default, vLLM will automatically allocate a KV Cache type that matches the model’s data type. However, vLLM also supports native FP8 on MI300X which we can exploit to reduce the memory requirement of KVCache and thereby increasing the deployable context length of the model.</p>
+
+<p>We experiment by using Auto KVCache type and KV Cache type FP8 and compare it to the default baseline. We can see from the figure below that using Auto KVCache type (red) achieves a higher request per second rate than using KV Cache type set to FP8 (yellow). Theoretically, this might be due to a quantization overhead in <code class="language-plaintext highlighter-rouge">Llama-3.1-70B-Instruct (bfloat16)</code> model, but since the cost of the overhead seems to be small, it could still be a good tradeoff in some cases to obtain a huge reduction in the KVCache requirements.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case06-kvcache-type/Requests per Second.png" width="90%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case06-kvcache-type/Mean TTFT (ms).png" width="90%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case06-kvcache-type/Mean TPOT (ms).png" width="90%" />
+</picture><br />
+</p>
+
+<h5 id="case-7-performance-difference-between-tp-4-and-tp-8">Case 7: Performance Difference between TP 4 and TP 8</h5>
+
+<p>Tensor parallelism is a technique for distributing the computational load of large models. It works by splitting individual tensors across multiple devices, allowing for parallel processing of specific operations or layers. This approach reduces the memory footprint of the model and enables scaling across multiple GPUs.</p>
+
+<p>While increasing the tensor parallelism degree can improve performance by providing more compute resources, the gains aren’t always linear. This is because communication overhead increases as more devices are involved, and the workload on each individual GPU decreases. Given the substantial processing power of the MI300X, smaller workloads per GPU can actually lead to underutilization, further hindering performance scaling.</p>
+
+<p>Therefore, when optimizing for throughput, we recommend launching multiple instances of vLLM instead of aggressively increasing tensor parallelism. This approach tends to yield more linear performance improvements. However, if minimizing latency is the priority, increasing the tensor parallelism degree may be the more effective strategy.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case07-tensor-parallelism/Requests per Second.png" width="85%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case07-tensor-parallelism/Mean TTFT (ms).png" width="85%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case07-tensor-parallelism/Mean TPOT (ms).png" width="85%" />
+</picture><br />
+</p>
+
+<h5 id="case-8-effect-of-maximum-number-of-parallel-sequences">Case 8: Effect of Maximum Number of (Parallel) Sequences</h5>
+
+<p>The <code class="language-plaintext highlighter-rouge">--max-num-seqs</code> argument specifies the maximum number of sequences that can be processed per iteration. This parameter controls the number of concurrent requests in a batch, impacting memory usage and performance. In the ShareGPT benchmark, due to the shorter input and output length of the samples, the <code class="language-plaintext highlighter-rouge">Llama-3.1-70B-Instruct</code> hosted on MI300X can process a large number of requests per iteration. In our experiment, the <code class="language-plaintext highlighter-rouge">--max-num-seqs</code> is still a limiting factor, even if <code class="language-plaintext highlighter-rouge">--max-num-seqs</code> is set at 1024.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case08-max-num-seq/Request per Second.png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case08-max-num-seq/Mean TTFT (ms).png" width="100%" />
+</picture><br />
+<picture>
+<img src="/assets/figures/vllm-serving-amd/case08-max-num-seq/Mean TPOT (ms).png" width="100%" />
+</picture><br />
+</p>
+
+<h3 id="quick-start-guide">Quick Start Guide</h3>
+<p>If you are not sure about the deployment setting and the distribution of the user requests, you could:</p>
+
+<ul>
+  <li>Use CK Flash Attention* (thought we didn’t show here, the CK Flash Attention implementation is a lot faster than triton counterpart implementation)
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">export VLLM_USE_TRITON_FLASH_ATTN=0</code></li>
+    </ul>
+  </li>
+  <li>Disable chunked prefill <code class="language-plaintext highlighter-rouge">--enable-chunked-prefill=False</code></li>
+  <li>Disable prefix caching</li>
+  <li>If the model supports long context length, set the <code class="language-plaintext highlighter-rouge">--max-seq-len-to-capture</code> to 16384</li>
+  <li>Set the <code class="language-plaintext highlighter-rouge">--num-scheduler-step</code> to 10 or 15.</li>
+  <li>Set the AMD environment:
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">sh -c 'echo 0 &gt; /proc/sys/kernel/numa_balancing' </code></li>
+      <li><code class="language-plaintext highlighter-rouge">export NCCL_MIN_NCHANNELS=112</code></li>
+    </ul>
+  </li>
+  <li>Increase <code class="language-plaintext highlighter-rouge">--max-num-seqs</code> to 512 and above, depending on the GPU memory and compute resource of the GPUs.</li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">VLLM_USE_TRITON_FLASH_ATTN</span><span class="o">=</span>0 vllm serve meta-llama/Llama-3.1-70B-Instruct <span class="nt">--host</span> 0.0.0.0 <span class="nt">--port</span> 8000 <span class="nt">-tp</span> 4 <span class="nt">--max-num-seqs</span> 1024 <span class="nt">--max-seq-len-to-capture</span> 16384 <span class="nt">--served-model-name</span> meta-llama/Llama-3.1-70B-Instruct <span class="nt">--enable-chunked-prefill</span><span class="o">=</span>False <span class="nt">--num-scheduler-step</span> 15 <span class="nt">--max-num-seqs</span> 1024
+</code></pre></div></div>
+
+<p>For quick setup, we have compiled the Docker Image of vLLM 0.6.2 (commit: <em>cb3b2b9ba4a95c413a879e30e2b8674187519a93</em>) to Github Container Registry.
+To get download the image:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># v0.6.2 post</span>
+docker pull ghcr.io/embeddedllm/vllm-rocm:cb3b2b9
+<span class="c"># P.S. We also have compiled the image for v0.6.3.post1 at commit 717a5f8</span>
+docker pull ghcr.io/embeddedllm/vllm-rocm:v0.6.3.post1-717a5f8
+</code></pre></div></div>
+
+<p>To launch a docker container with the image run:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>docker run <span class="nt">-it</span> <span class="se">\</span>
+   <span class="nt">--network</span><span class="o">=</span>host <span class="se">\</span>
+   <span class="nt">--group-add</span><span class="o">=</span>video <span class="se">\</span>
+   <span class="nt">--ipc</span><span class="o">=</span>host <span class="se">\</span>
+   <span class="nt">--cap-add</span><span class="o">=</span>SYS_PTRACE <span class="se">\</span>
+   <span class="nt">--security-opt</span> <span class="nv">seccomp</span><span class="o">=</span>unconfined <span class="se">\</span>
+   <span class="nt">--device</span> /dev/kfd <span class="se">\</span>
+   <span class="nt">--device</span> /dev/dri <span class="se">\</span>
+   <span class="nt">-v</span> /path/to/hfmodels:/app/model <span class="se">\ </span><span class="c"># if you have pre-downloaded the model weight, else ignore</span>
+   ghcr.io/embeddedllm/vllm-rocm:cb3b2b9 <span class="se">\</span>
+   bash
+</code></pre></div></div>
+
+<p>Now launch the LLM server with the parameters that we have found:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">VLLM_USE_TRITON_FLASH_ATTN</span><span class="o">=</span>0 vllm serve meta-llama/Llama-3.1-70B-Instruct <span class="nt">--host</span> 0.0.0.0 <span class="nt">--port</span> 8000 <span class="nt">-tp</span> 4 <span class="nt">--max-num-seqs</span> 1024 <span class="nt">--max-seq-len-to-capture</span> 16384 <span class="nt">--served-model-name</span> meta-llama/Llama-3.1-70B-Instruct <span class="nt">--enable-chunked-prefill</span><span class="o">=</span>False <span class="nt">--num-scheduler-step</span> 15 <span class="nt">--max-num-seqs</span> 1024
+</code></pre></div></div>
+
+<h3 id="conclusion">Conclusion</h3>
+<p>This guide has explored the power of vLLM for serving large language models on AMD MI300X GPUs. By meticulously tuning key settings like chunked prefill, multi-step scheduling, and CUDA graph capture, we’ve demonstrated how to achieve substantial performance gains over standard configurations and alternative serving solutions. vLLM unlocks significantly higher throughput and faster response times, making it an ideal choice for deploying LLMs on AMD hardware.</p>
+
+<p>However, it’s important to acknowledge that our exploration has focused primarily on general chatbot usage with short inputs and outputs. Further investigation is needed to optimize vLLM for specific use cases like summarization or long-form content generation. Additionally, a deeper dive into the performance differences between Triton and CK attention kernels could yield further insights.</p>
+
+<p>We also want to acknolwedge <a href="https://shisa.ai/blog/posts/tuning-vllm-mi300x/">this wonderful blogpost</a> by Leonard Lin on how to further optimize vLLM for MI300X, including hipBLAS vs hipBLASLt, CK Flash Attention vs Triton Flash Attention, Tensor Parallelism vs Pipeline Parallelism, etc.</p>
+
+<h3 id="acknowledgements">Acknowledgements</h3>
+<p>This blog post is drafted by the team at <a href="https://embeddedllm.com/">Embedded LLM</a> and thank you to <a href="https://hotaisle.xyz/">Hot Aisles Inc.</a> for sponsoring MI300X for benchmarking vLLM.</p>
+
+<h3 id="appendix">Appendix</h3>
+
+<h4 id="server-specification">Server Specification</h4>
+
+<p>The following are the configuration of the amazing Hot Aisles server:</p>
+<ul>
+  <li>CPU: 2 x Intel Xeon Platinum 8470</li>
+  <li>GPU: 8 x AMD Instinct MI300X Accelerators
+The model and software that we are using in the benchmark are as follows:</li>
+  <li>Model: meta-llama/Llama-3.1-405B-Instruct and meta-llama/Llama-3.1-70B-Instruct</li>
+  <li>vLLM (v0.6.2): vllm-project/vllm: A high-throughput and memory-efficient inference and serving engine for LLMs (github.com) commit: cb3b2b9ba4a95c413a879e30e2b8674187519a93</li>
+  <li>Dataset: ShareGPT</li>
+  <li>Benchmark script: benchmarks/benchmark_serving.py in the repository</li>
+</ul>
+
+<p>We have built the ROCm compatible vLLM docker from Dockerfile.rocm found in the repository (we have pushed the docker image of the vLLM version that we have used to run our benchmark. Get it by <code class="language-plaintext highlighter-rouge">docker pull ghcr.io/embeddedllm/vllm-rocm:cb3b2b9</code>).
+<strong>All of the benchmarks are run in the docker container instance, and are run with 4 MI300X GPUs using CK Flash Attention with <code class="language-plaintext highlighter-rouge">VLLM_USE_TRITON_FLASH_ATTN=0.</code></strong></p>
+
+<h4 id="detail-benchmark-configuration">Detail Benchmark Configuration</h4>
+
+<table>
+  <thead>
+    <tr>
+      <th>Configuration</th>
+      <th>Command</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>vLLM Default Configuration</td>
+      <td><code class="language-plaintext highlighter-rouge">VLLM_RPC_TIMEOUT=30000 VLLM_USE_TRITON_FLASH_ATTN=0 vllm serve Llama-3.1-405B-Instruct -tp 8 --max-num-seqs 1024 --max-num-batched-tokens 1024 </code></td>
+    </tr>
+    <tr>
+      <td>TGI Default Configuration</td>
+      <td><code class="language-plaintext highlighter-rouge">ROCM_USE_FLASH_ATTN_V2_TRITON=false TRUST_REMOTE_CODE=true text-generation-launcher --num-shard 8 --sharded true --max-concurrent-requests 1024 --model-id Llama-3.1-405B-Instruct</code></td>
+    </tr>
+    <tr>
+      <td>vLLM (This Guide)</td>
+      <td><code class="language-plaintext highlighter-rouge">VLLM_RPC_TIMEOUT=30000 VLLM_USE_TRITON_FLASH_ATTN=0 vllm serve Llama-3.1-405B-Instruct-FP8 -tp 8 --max-seq-len-to-capture 16384 --enable-chunked-prefill=False --num-scheduler-step 15 --max-num-seqs 1024 </code></td>
+    </tr>
+    <tr>
+      <td>TGI (This Guide)</td>
+      <td><code class="language-plaintext highlighter-rouge">ROCM_USE_FLASH_ATTN_V2_TRITON=false TRUST_REMOTE_CODE=true text-generation-launcher --num-shard 8 --sharded true --max-concurrent-requests 1024 --max-total-tokens 131072 --max-input-tokens 131000 --model-id Llama-3.1-405B-Instruct</code></td>
+    </tr>
+  </tbody>
+</table>
+
+  </div><a class="u-url" href="/2024/10/23/vllm-serving-amd.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <!-- <p class="feed-subscribe">
+          <a href="/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p> -->
+        <ul class="contact-list">
+          <li class="p-name">© 2024. vLLM Team. All rights reserved.</li>
+          <li><a href="https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
