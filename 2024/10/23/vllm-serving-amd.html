@@ -6,7 +6,7 @@
 <title>Serving LLMs on AMD MI300X: Best Practices | vLLM Blog</title>
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="Serving LLMs on AMD MI300X: Best Practices" />
-<meta name="author" content="Guest Post by Embedded LLM and Hot Aisles Inc." />
+<meta name="author" content="Guest Post by Embedded LLM and Hot Aisle Inc." />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide." />
 <meta property="og:description" content="TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide." />
@@ -16,7 +16,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Serving LLMs on AMD MI300X: Best Practices" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Guest Post by Embedded LLM and Hot Aisles Inc."},"dateModified":"2024-10-23T00:00:00-07:00","datePublished":"2024-10-23T00:00:00-07:00","description":"TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide.","headline":"Serving LLMs on AMD MI300X: Best Practices","mainEntityOfPage":{"@type":"WebPage","@id":"/2024/10/23/vllm-serving-amd.html"},"url":"/2024/10/23/vllm-serving-amd.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Guest Post by Embedded LLM and Hot Aisle Inc."},"dateModified":"2024-10-23T00:00:00-07:00","datePublished":"2024-10-23T00:00:00-07:00","description":"TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide.","headline":"Serving LLMs on AMD MI300X: Best Practices","mainEntityOfPage":{"@type":"WebPage","@id":"/2024/10/23/vllm-serving-amd.html"},"url":"/2024/10/23/vllm-serving-amd.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
 <script>
@@ -41,7 +41,7 @@
         Oct 23, 2024
       </time>• 
           <span itemprop="author" itemscope itemtype="http://schema.org/Person">
-            <span class="p-author h-card" itemprop="name">Guest Post by Embedded LLM and Hot Aisles Inc.</span></span></p>
+            <span class="p-author h-card" itemprop="name">Guest Post by Embedded LLM and Hot Aisle Inc.</span></span></p>
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
@@ -348,13 +348,13 @@ docker pull ghcr.io/embeddedllm/vllm-rocm:v0.6.3.post1-717a5f8
 <p>We also want to acknolwedge <a href="https://shisa.ai/blog/posts/tuning-vllm-mi300x/">this wonderful blogpost</a> by Leonard Lin on how to further optimize vLLM for MI300X, including hipBLAS vs hipBLASLt, CK Flash Attention vs Triton Flash Attention, Tensor Parallelism vs Pipeline Parallelism, etc.</p>
 
 <h3 id="acknowledgements">Acknowledgements</h3>
-<p>This blog post is drafted by the team at <a href="https://embeddedllm.com/">Embedded LLM</a> and thank you to <a href="https://hotaisle.xyz/">Hot Aisles Inc.</a> for sponsoring MI300X for benchmarking vLLM.</p>
+<p>This blog post is drafted by the team at <a href="https://embeddedllm.com/">Embedded LLM</a> and thank you to <a href="https://hotaisle.xyz/">Hot Aisle Inc.</a> for sponsoring MI300X for benchmarking vLLM.</p>
 
 <h3 id="appendix">Appendix</h3>
 
 <h4 id="server-specification">Server Specification</h4>
 
-<p>The following are the configuration of the amazing Hot Aisles server:</p>
+<p>The following are the configuration of the amazing Hot Aisle server:</p>
 <ul>
   <li>CPU: 2 x Intel Xeon Platinum 8470</li>
   <li>GPU: 8 x AMD Instinct MI300X Accelerators
