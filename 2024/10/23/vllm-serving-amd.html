@@ -10,15 +10,19 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide." />
 <meta property="og:description" content="TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide." />
+<link rel="canonical" href="https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html" />
+<meta property="og:url" content="https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html" />
 <meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:image" content="https://blog.vllm.ai/assets/figures/vllm-serving-amd/405b1.png" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-10-23T00:00:00-07:00" />
-<meta name="twitter:card" content="summary" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="twitter:image" content="https://blog.vllm.ai/assets/figures/vllm-serving-amd/405b1.png" />
 <meta property="twitter:title" content="Serving LLMs on AMD MI300X: Best Practices" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Guest Post by Embedded LLM and Hot Aisle Inc."},"dateModified":"2024-10-23T00:00:00-07:00","datePublished":"2024-10-23T00:00:00-07:00","description":"TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide.","headline":"Serving LLMs on AMD MI300X: Best Practices","mainEntityOfPage":{"@type":"WebPage","@id":"/2024/10/23/vllm-serving-amd.html"},"url":"/2024/10/23/vllm-serving-amd.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Guest Post by Embedded LLM and Hot Aisle Inc."},"dateModified":"2024-10-23T00:00:00-07:00","datePublished":"2024-10-23T00:00:00-07:00","description":"TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide.","headline":"Serving LLMs on AMD MI300X: Best Practices","image":"https://blog.vllm.ai/assets/figures/vllm-serving-amd/405b1.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html"},"url":"https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html"}</script>
 <!-- End Jekyll SEO tag -->
-<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://blog.vllm.ai/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
 <script>
   window['ga-disable-G-9C5R3JR3QS'] = window.doNotTrack === "1" || navigator.doNotTrack === "1" || navigator.doNotTrack === "yes" || navigator.msDoNotTrack === "1";
   window.dataLayer = window.dataLayer || [];
@@ -300,7 +304,7 @@ vLLM vs. TGI performance for Llama 3.1 405B on 8 x MI300X (BF16, QPS 16, 32, 100
   <li>Disable chunked prefill <code class="language-plaintext highlighter-rouge">--enable-chunked-prefill=False</code></li>
   <li>Disable prefix caching</li>
   <li>If the model supports long context length, set the <code class="language-plaintext highlighter-rouge">--max-seq-len-to-capture</code> to 16384</li>
-  <li>Set the <code class="language-plaintext highlighter-rouge">--num-scheduler-step</code> to 10 or 15.</li>
+  <li>Set <code class="language-plaintext highlighter-rouge">--num-scheduler-steps</code> to 10 or 15.</li>
   <li>Set the AMD environment:
     <ul>
       <li><code class="language-plaintext highlighter-rouge">sh -c 'echo 0 &gt; /proc/sys/kernel/numa_balancing' </code></li>
@@ -310,7 +314,7 @@ vLLM vs. TGI performance for Llama 3.1 405B on 8 x MI300X (BF16, QPS 16, 32, 100
   <li>Increase <code class="language-plaintext highlighter-rouge">--max-num-seqs</code> to 512 and above, depending on the GPU memory and compute resource of the GPUs.</li>
 </ul>
 
-<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">VLLM_USE_TRITON_FLASH_ATTN</span><span class="o">=</span>0 vllm serve meta-llama/Llama-3.1-70B-Instruct <span class="nt">--host</span> 0.0.0.0 <span class="nt">--port</span> 8000 <span class="nt">-tp</span> 4 <span class="nt">--max-num-seqs</span> 1024 <span class="nt">--max-seq-len-to-capture</span> 16384 <span class="nt">--served-model-name</span> meta-llama/Llama-3.1-70B-Instruct <span class="nt">--enable-chunked-prefill</span><span class="o">=</span>False <span class="nt">--num-scheduler-step</span> 15 <span class="nt">--max-num-seqs</span> 1024
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">VLLM_USE_TRITON_FLASH_ATTN</span><span class="o">=</span>0 vllm serve meta-llama/Llama-3.1-70B-Instruct <span class="nt">--host</span> 0.0.0.0 <span class="nt">--port</span> 8000 <span class="nt">-tp</span> 4 <span class="nt">--max-num-seqs</span> 1024 <span class="nt">--max-seq-len-to-capture</span> 16384 <span class="nt">--served-model-name</span> meta-llama/Llama-3.1-70B-Instruct <span class="nt">--enable-chunked-prefill</span><span class="o">=</span>False <span class="nt">--num-scheduler-steps</span> 15 <span class="nt">--max-num-seqs</span> 1024
 </code></pre></div></div>
 
 <p>For quick setup, we have compiled the Docker Image of vLLM 0.6.2 (commit: <em>cb3b2b9ba4a95c413a879e30e2b8674187519a93</em>) to Github Container Registry.
@@ -337,7 +341,7 @@ docker pull ghcr.io/embeddedllm/vllm-rocm:v0.6.3.post1-717a5f8
 
 <p>Now launch the LLM server with the parameters that we have found:</p>
 
-<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">VLLM_USE_TRITON_FLASH_ATTN</span><span class="o">=</span>0 vllm serve meta-llama/Llama-3.1-70B-Instruct <span class="nt">--host</span> 0.0.0.0 <span class="nt">--port</span> 8000 <span class="nt">-tp</span> 4 <span class="nt">--max-num-seqs</span> 1024 <span class="nt">--max-seq-len-to-capture</span> 16384 <span class="nt">--served-model-name</span> meta-llama/Llama-3.1-70B-Instruct <span class="nt">--enable-chunked-prefill</span><span class="o">=</span>False <span class="nt">--num-scheduler-step</span> 15 <span class="nt">--max-num-seqs</span> 1024
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">VLLM_USE_TRITON_FLASH_ATTN</span><span class="o">=</span>0 vllm serve meta-llama/Llama-3.1-70B-Instruct <span class="nt">--host</span> 0.0.0.0 <span class="nt">--port</span> 8000 <span class="nt">-tp</span> 4 <span class="nt">--max-num-seqs</span> 1024 <span class="nt">--max-seq-len-to-capture</span> 16384 <span class="nt">--served-model-name</span> meta-llama/Llama-3.1-70B-Instruct <span class="nt">--enable-chunked-prefill</span><span class="o">=</span>False <span class="nt">--num-scheduler-steps</span> 15 <span class="nt">--max-num-seqs</span> 1024
 </code></pre></div></div>
 
 <h3 id="conclusion">Conclusion</h3>
@@ -388,7 +392,7 @@ The model and software that we are using in the benchmark are as follows:</li>
     </tr>
     <tr>
       <td>vLLM (This Guide)</td>
-      <td><code class="language-plaintext highlighter-rouge">VLLM_RPC_TIMEOUT=30000 VLLM_USE_TRITON_FLASH_ATTN=0 vllm serve Llama-3.1-405B-Instruct -tp 8 --max-seq-len-to-capture 16384 --enable-chunked-prefill=False --num-scheduler-step 15 --max-num-seqs 1024 </code></td>
+      <td><code class="language-plaintext highlighter-rouge">VLLM_RPC_TIMEOUT=30000 VLLM_USE_TRITON_FLASH_ATTN=0 vllm serve Llama-3.1-405B-Instruct -tp 8 --max-seq-len-to-capture 16384 --enable-chunked-prefill=False --num-scheduler-steps 15 --max-num-seqs 1024 </code></td>
     </tr>
     <tr>
       <td>TGI (This Guide)</td>
@@ -409,7 +413,7 @@ The model and software that we are using in the benchmark are as follows:</li>
     <div class="footer-col-wrapper">
       <div class="footer-col">
         <!-- <p class="feed-subscribe">
-          <a href="/feed.xml">
+          <a href="https://blog.vllm.ai/feed.xml">
             <svg class="svg-icon orange">
               <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
             </svg><span>Subscribe</span>
