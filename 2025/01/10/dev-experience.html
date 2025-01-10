@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Installing and Developing vLLM with Ease | vLLM Blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="Installing and Developing vLLM with Ease" />
+<meta name="author" content="vLLM Team" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The field of LLM inference is advancing at an unprecedented pace. With new models and features emerging weekly, the traditional software release pipeline often struggles to keep up. At vLLM, we aim to provide more than just a software package. We’re building a system—a trusted, trackable, and participatory ecosystem for LLM inference. This blog post highlights how vLLM enables users to install and develop with ease while staying at the forefront of innovation." />
+<meta property="og:description" content="The field of LLM inference is advancing at an unprecedented pace. With new models and features emerging weekly, the traditional software release pipeline often struggles to keep up. At vLLM, we aim to provide more than just a software package. We’re building a system—a trusted, trackable, and participatory ecosystem for LLM inference. This blog post highlights how vLLM enables users to install and develop with ease while staying at the forefront of innovation." />
+<link rel="canonical" href="https://blog.vllm.ai/2025/01/10/dev-experience.html" />
+<meta property="og:url" content="https://blog.vllm.ai/2025/01/10/dev-experience.html" />
+<meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:image" content="https://blog.vllm.ai/assets/logos/vllm-logo-only-light.png" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-01-10T00:00:00-08:00" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="twitter:image" content="https://blog.vllm.ai/assets/logos/vllm-logo-only-light.png" />
+<meta property="twitter:title" content="Installing and Developing vLLM with Ease" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2025-01-10T00:00:00-08:00","datePublished":"2025-01-10T00:00:00-08:00","description":"The field of LLM inference is advancing at an unprecedented pace. With new models and features emerging weekly, the traditional software release pipeline often struggles to keep up. At vLLM, we aim to provide more than just a software package. We’re building a system—a trusted, trackable, and participatory ecosystem for LLM inference. This blog post highlights how vLLM enables users to install and develop with ease while staying at the forefront of innovation.","headline":"Installing and Developing vLLM with Ease","image":"https://blog.vllm.ai/assets/logos/vllm-logo-only-light.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.vllm.ai/2025/01/10/dev-experience.html"},"url":"https://blog.vllm.ai/2025/01/10/dev-experience.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://blog.vllm.ai/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
+<script>
+  window['ga-disable-G-9C5R3JR3QS'] = window.doNotTrack === "1" || navigator.doNotTrack === "1" || navigator.doNotTrack === "yes" || navigator.msDoNotTrack === "1";
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){window.dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9C5R3JR3QS');
+</script>
+
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">vLLM Blog</a></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Installing and Developing vLLM with Ease</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2025-01-10T00:00:00-08:00" itemprop="datePublished">
+        Jan 10, 2025
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">vLLM Team</span></span></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>The field of LLM inference is advancing at an unprecedented pace. With new models and features emerging weekly, the traditional software release pipeline often struggles to keep up. At vLLM, we aim to provide more than just a software package. We’re building a system—a trusted, trackable, and participatory ecosystem for LLM inference. This blog post highlights how vLLM enables users to install and develop with ease while staying at the forefront of innovation.</p>
+
+<h2 id="tldr">TL;DR:</h2>
+
+<ul>
+  <li>Flexible and fast installation options from stable releases to nightly builds.</li>
+  <li>Streamlined development workflow for both Python and C++/CUDA developers.</li>
+  <li>Robust version tracking capabilities for production deployments.</li>
+</ul>
+
+<h2 id="seamless-installation-of-vllm-versions">Seamless Installation of vLLM Versions</h2>
+
+<h3 id="install-released-versions">Install Released Versions</h3>
+
+<p>We periodically release stable versions of vLLM to the <a href="https://pypi.org/project/vllm/">Python Package Index</a>, ensuring users can easily install them using standard Python package managers. For example:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install </span>vllm
+</code></pre></div></div>
+
+<p>For those who prefer a faster package manager, <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a> has been gaining traction in the vLLM community. After setting up a Python environment with uv, installing vLLM is straightforward:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>uv pip <span class="nb">install </span>vllm
+</code></pre></div></div>
+
+<p>Refer to the <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#install-released-versions">documentation</a> for more details on setting up <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a>. Using a simple server-grade setup (Intel 8th Gen CPU), we observe that <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a> is 200x faster than pip:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># with cached packages, clean virtual environment</span>
+<span class="nv">$ </span><span class="nb">time </span>pip <span class="nb">install </span>vllm
+...
+pip <span class="nb">install </span>vllm 59.09s user 3.82s system 83% cpu 1:15.68 total
+
+<span class="c"># with cached packages, clean virtual environment</span>
+<span class="nv">$ </span><span class="nb">time </span>uv pip <span class="nb">install </span>vllm
+...
+uv pip <span class="nb">install </span>vllm 0.17s user 0.57s system 193% cpu 0.383 total
+</code></pre></div></div>
+
+<h3 id="install-the-latest-vllm-from-the-main-branch">Install the Latest vLLM from the Main Branch</h3>
+
+<p>To meet the community’s need for cutting-edge features and models, we provide nightly wheels for every commit on the main branch.</p>
+
+<p><strong>Using pip</strong>:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install </span>vllm <span class="nt">--pre</span> <span class="nt">--extra-index-url</span> https://wheels.vllm.ai/nightly
+</code></pre></div></div>
+
+<p>Adding <code class="language-plaintext highlighter-rouge">--pre</code> ensures pip includes pre-released versions in its search.</p>
+
+<p><strong>Using uv</strong>:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>uv pip <span class="nb">install </span>vllm <span class="nt">--extra-index-url</span> https://wheels.vllm.ai/nightly
+</code></pre></div></div>
+
+<h2 id="development-made-simple">Development Made Simple</h2>
+
+<p>We understand that an active, engaged developer community is the backbone of innovation. That’s why vLLM offers smooth workflows for developers, regardless of whether they’re modifying Python code or working with kernels.</p>
+
+<h3 id="python-developers">Python Developers</h3>
+
+<p>For Python developers who need to tweak and test vLLM’s Python code, there’s no need to compile kernels. This setup enables you to start development quickly.</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/vllm-project/vllm.git
+<span class="nb">cd </span>vllm
+<span class="nv">VLLM_USE_PRECOMPILED</span><span class="o">=</span>1 pip <span class="nb">install</span> <span class="nt">-e</span> <span class="nb">.</span>
+</code></pre></div></div>
+
+<p>The <code class="language-plaintext highlighter-rouge">VLLM_USE_PRECOMPILED=1</code> flag instructs the installer to use pre-compiled CUDA kernels instead of building them from source, significantly reducing installation time. This is perfect for developers focusing on Python-level features like API improvements, model support, or integration work.</p>
+
+<p>This lightweight process runs efficiently, even on a laptop. Refer to our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#python-only-build-without-compilation">documentation</a> for more advanced usage.</p>
+
+<h3 id="ckernel-developers">C++/Kernel Developers</h3>
+
+<p>For advanced contributors working with C++ code or CUDA kernels, we incorporate a compilation cache to minimize build time and streamline kernel development. Please check our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#full-build-with-compilation">documentation</a> for more details.</p>
+
+<h2 id="track-changes-with-ease">Track Changes with Ease</h2>
+
+<p>The fast-evolving nature of LLM inference means interfaces and behaviors are still stabilizing. vLLM has been integrated into many workflows, including <a href="https://github.com/OpenRLHF/OpenRLHF">OpenRLHF</a>, <a href="https://github.com/volcengine/verl">veRL</a>, <a href="https://github.com/allenai/open-instruct">open_instruct</a>, <a href="https://github.com/hiyouga/LLaMA-Factory">LLaMA-Factory</a>, etc. We collaborate with these projects to stabilize interfaces and behaviors for LLM inference. To facilitate the process, we provide powerful tools for these advanced users to track changes across versions.</p>
+
+<h3 id="installing-a-specific-commit">Installing a Specific Commit</h3>
+
+<p>To simplify tracking and testing, we provide wheels for every commit in the main branch. Users can easily install any specific commit, which can be particularly useful to bisect and track the changes.</p>
+
+<p>We recommend using <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a> to install a specific commit:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># use full commit hash from the main branch</span>
+<span class="nb">export </span><span class="nv">VLLM_COMMIT</span><span class="o">=</span>72d9c316d3f6ede485146fe5aabd4e61dbc59069
+uv pip <span class="nb">install </span>vllm <span class="nt">--extra-index-url</span> https://wheels.vllm.ai/<span class="k">${</span><span class="nv">VLLM_COMMIT</span><span class="k">}</span>
+</code></pre></div></div>
+
+<p>In <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a>, packages in <code class="language-plaintext highlighter-rouge">--extra-index-url</code> have <a href="https://docs.astral.sh/uv/pip/compatibility/#packages-that-exist-on-multiple-indexes">higher priority than the default index</a>, which makes it possible to install a developing version prior to the latest public release (at the time of writing, it is v0.6.6.post1).</p>
+
+<p>In contrast, pip combines packages from <code class="language-plaintext highlighter-rouge">--extra-index-url</code> and the default index, choosing only the latest version, which makes it difficult to install a developing version prior to the released version. Therefore, for pip users, it requires specifying a placeholder wheel name to install a specific commit:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># use full commit hash from the main branch</span>
+<span class="nb">export </span><span class="nv">VLLM_COMMIT</span><span class="o">=</span>33f460b17a54acb3b6cc0b03f4a17876cff5eafd
+pip <span class="nb">install </span>https://wheels.vllm.ai/<span class="k">${</span><span class="nv">VLLM_COMMIT</span><span class="k">}</span>/vllm-1.0.0.dev-cp38-abi3-manylinux1_x86_64.whl
+</code></pre></div></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>At vLLM, our commitment extends beyond delivering high-performance software. We’re building a system that empowers trust, enables transparent tracking of changes, and invites active participation. Together, we can shape the future of AI, pushing the boundaries of innovation while making it accessible to all.</p>
+
+<p>For collaboration requests or inquiries, reach out at <a href="mailto:vllm-questions@lists.berkeley.edu">vllm-questions@lists.berkeley.edu</a>. Join our growing community on <a href="https://github.com/vllm-project/vllm">GitHub</a> or connect with us on the <a href="https://slack.vllm.ai/">vLLM Slack</a>. Together, let’s drive AI innovation forward.</p>
+
+<h2 id="acknowledgments">Acknowledgments</h2>
+
+<p>We extend our gratitude to the <a href="https://docs.astral.sh/uv/">uv community</a> — particularly <a href="https://github.com/charliermarsh">Charlie Marsh</a> — for creating a fast, innovative package manager. Special thanks to <a href="https://github.com/khluu">Kevin Luu</a> (Anyscale), <a href="https://github.com/dtrifiro">Daniele Trifirò</a> (Red Hat), and <a href="https://github.com/mgoin">Michael Goin</a> (Neural Magic) for their invaluable contributions to streamlining workflows. <a href="https://github.com/youkaichao">Kaichao You</a> and <a href="https://github.com/simon-mo">Simon Mo</a> from the UC Berkeley team lead these efforts.</p>
+
+  </div><a class="u-url" href="/2025/01/10/dev-experience.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <!-- <p class="feed-subscribe">
+          <a href="https://blog.vllm.ai/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p> -->
+        <ul class="contact-list">
+          <li class="p-name">© 2024. vLLM Team. All rights reserved.</li>
+          <li><a href="https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
