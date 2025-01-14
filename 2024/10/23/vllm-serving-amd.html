@@ -4,7 +4,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Serving LLMs on AMD MI300X: Best Practices | vLLM Blog</title>
-<meta name="generator" content="Jekyll v4.3.3" />
+<meta name="generator" content="Jekyll v4.3.4" />
 <meta property="og:title" content="Serving LLMs on AMD MI300X: Best Practices" />
 <meta name="author" content="Guest Post by Embedded LLM and Hot Aisle Inc." />
 <meta property="og:locale" content="en_US" />
@@ -15,12 +15,12 @@
 <meta property="og:site_name" content="vLLM Blog" />
 <meta property="og:image" content="https://blog.vllm.ai/assets/figures/vllm-serving-amd/405b1.png" />
 <meta property="og:type" content="article" />
-<meta property="article:published_time" content="2024-10-23T00:00:00-07:00" />
+<meta property="article:published_time" content="2024-10-23T00:00:00-04:00" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta property="twitter:image" content="https://blog.vllm.ai/assets/figures/vllm-serving-amd/405b1.png" />
 <meta property="twitter:title" content="Serving LLMs on AMD MI300X: Best Practices" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Guest Post by Embedded LLM and Hot Aisle Inc."},"dateModified":"2024-10-23T00:00:00-07:00","datePublished":"2024-10-23T00:00:00-07:00","description":"TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide.","headline":"Serving LLMs on AMD MI300X: Best Practices","image":"https://blog.vllm.ai/assets/figures/vllm-serving-amd/405b1.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html"},"url":"https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Guest Post by Embedded LLM and Hot Aisle Inc."},"dateModified":"2024-10-23T00:00:00-04:00","datePublished":"2024-10-23T00:00:00-04:00","description":"TL;DR: vLLM unlocks incredible performance on the AMD MI300X, achieving 1.5x higher throughput and 1.7x faster time-to-first-token (TTFT) than Text Generation Inference (TGI) for Llama 3.1 405B. It also achieves 1.8x higher throughput and 5.1x faster TTFT than TGI for Llama 3.1 70B. This guide explores 8 key vLLM settings to maximize efficiency, showing you how to leverage the power of open-source LLM inference on AMD. If you just want to see the optimal parameters, jump to the Quick Start Guide.","headline":"Serving LLMs on AMD MI300X: Best Practices","image":"https://blog.vllm.ai/assets/figures/vllm-serving-amd/405b1.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html"},"url":"https://blog.vllm.ai/2024/10/23/vllm-serving-amd.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://blog.vllm.ai/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
 <script>
@@ -41,7 +41,7 @@
       <div class="wrapper">
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
     <h1 class="post-title p-name" itemprop="name headline">Serving LLMs on AMD MI300X: Best Practices</h1>
-    <p class="post-meta"><time class="dt-published" datetime="2024-10-23T00:00:00-07:00" itemprop="datePublished">
+    <p class="post-meta"><time class="dt-published" datetime="2024-10-23T00:00:00-04:00" itemprop="datePublished">
         Oct 23, 2024
       </time>• 
           <span itemprop="author" itemscope itemtype="http://schema.org/Person">
