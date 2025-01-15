@@ -1,4 +1,426 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="https://blog.vllm.ai/feed.xml" rel="self" type="application/atom+xml" /><link href="https://blog.vllm.ai/" rel="alternate" type="text/html" /><updated>2025-01-10T10:18:47-08:00</updated><id>https://blog.vllm.ai/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">Installing and Developing vLLM with Ease</title><link href="https://blog.vllm.ai/2025/01/10/dev-experience.html" rel="alternate" type="text/html" title="Installing and Developing vLLM with Ease" /><published>2025-01-10T00:00:00-08:00</published><updated>2025-01-10T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/10/dev-experience</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/10/dev-experience.html"><![CDATA[<p>The field of LLM inference is advancing at an unprecedented pace. With new models and features emerging weekly, the traditional software release pipeline often struggles to keep up. At vLLM, we aim to provide more than just a software package. We’re building a system—a trusted, trackable, and participatory ecosystem for LLM inference. This blog post highlights how vLLM enables users to install and develop with ease while staying at the forefront of innovation.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="https://blog.vllm.ai/feed.xml" rel="self" type="application/atom+xml" /><link href="https://blog.vllm.ai/" rel="alternate" type="text/html" /><updated>2025-01-14T17:33:12-08:00</updated><id>https://blog.vllm.ai/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">Structured Decoding in vLLM: a gentle introduction</title><link href="https://blog.vllm.ai/2025/01/14/struct-decode-intro.html" rel="alternate" type="text/html" title="Structured Decoding in vLLM: a gentle introduction" /><published>2025-01-14T00:00:00-08:00</published><updated>2025-01-14T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/14/struct-decode-intro</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/14/struct-decode-intro.html"><![CDATA[<p><strong>TL/DR</strong>:</p>
+
+<ul>
+  <li>Structured decoding allows precise control over LLM output formats</li>
+  <li>vLLM now supports both <a href="https://github.com/dottxt-ai/outlines">outlines</a> and <a href="https://github.com/mlc-ai/xgrammar">XGrammar</a> backends for structured decoding</li>
+  <li>Recent XGrammar integration brings up to 5x improvement in time per output token (TPOT) under load</li>
+  <li>Upcoming v1 release focuses on enhanced performance and schedule-level mask broadcasting for mixed-requests batch support</li>
+</ul>
+
+<p><em><a href="https://blog.vllm.ai/2023/06/20/vllm.html">vLLM</a> is the high-throughput and efficient inference engine for running <strong>large-language models</strong> (LLMs). In this post, we will explore the annotated history of language models, describe the current state of structured decoding in vLLM, as well as the recent integration with <a href="https://github.com/vllm-project/vllm/pull/10785">XGrammar</a>, and <a href="https://github.com/vllm-project/vllm/issues/8779">share our tentative roadmap for future improvements</a>.</em></p>
+
+<blockquote>
+  <p>We would also invite users to tackle this blog post from a philosophical perspective, and in the process trying to posit that structured decoding represents a fundamental shift in how we think about LLM outputs. It also plays an important role in building complex agentic system.</p>
+</blockquote>
+
+<p>For more information about vLLM, please check out our <a href="https://docs.vllm.ai/en/latest/">documentation</a>.</p>
+
+<h2 id="language-models-a-brief-historical-context">Language models: A brief historical context</h2>
+
+<p>In 1950, Alan Turing proposed that a high-speed digital computer, programmed with rules, could exhibit emergent behaviour of intelligence (Turing, 1950). This led to two main approaches in AI development:</p>
+
+<ol>
+  <li>
+    <p>Good Old-Fashioned AI (GOFAI): A paradigm quickly emerged among researchers in the 1950s, where expert systems were designed to replicate the decision-making capabilities of a human specialist<sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote" rel="footnote">1</a></sup>, (or symbolic reasoning system), referred to by Haugland as Good Old-Fashioned AI (GOFAI) (Haugeland, 1997). However, it quickly ran into funding problems due to its semantic representation not being able to scale up to generalised tasks (Also known as the “AI Winter” (Hendler, 2008)).</p>
+  </li>
+  <li>
+    <p>New-Fangled AI (NFAI): Concurrently, Donald Norman’s Parallel Distributed Processing (Rumelhart et al., 1986) group investigated variations of Rosenblatt’s perception (Rosenblatt, 1958), where they proposed <em>hidden layers</em> within the network alongside with inputs and outputs to extrapolate appropriate responses based on what it had learned during training process. These connectionist networks were often built on top of statistical methods<sup id="fnref:2" role="doc-noteref"><a href="#fn:2" class="footnote" rel="footnote">2</a></sup>. Given the abundance of data and Moore’s Law<sup id="fnref:3" role="doc-noteref"><a href="#fn:3" class="footnote" rel="footnote">3</a></sup> resulting in an unprecedented amount of compute available, we see the complete dominance of connectionist networks in both research and production use-cases, most notably variants of <em>decoder-only</em> transformers<sup id="fnref:4" role="doc-noteref"><a href="#fn:4" class="footnote" rel="footnote">4</a></sup> for <em>text generations</em> tasks. As such, most modern transformers variants are considered <strong>NFAI</strong> systems.</p>
+  </li>
+</ol>
+
+<p>In summary:</p>
+
+<ul>
+  <li>GOFAI are <em>deterministic</em> and rule-based, given its intentionality is injected through explicit programming</li>
+  <li>NFAI are often considered as “black-box” models (in: input - out: some output), data-driven given the networked complexity nature of its internal representations</li>
+</ul>
+
+<h2 id="why-do-we-need-structured-decoding">Why do we need structured decoding?</h2>
+
+<figure>
+  <img src="/assets/figures/struct-decode-intro/shogoth-gpt.png" />
+<figcaption>
+Shogoth as GPTs. In a sense, RLHF, or any post-training methods, is an injection of rules (a GOFAI system) into any large compound AI systems
+</figcaption>
+</figure>
+
+<p>LLMs excel at the following heuristic: given a blob of text, the model will generate a contiguous piece of text that it predicts as the most probable tokens. For example, if you give it a Wikipedia article, the model should produce text consistent with the remainder of said article.</p>
+
+<p>These models work well given the following assumption: the input prompt must be coherent and well-structured surrounding a given problem the users want to achieve. In other words, LLMs can be unpredictable when you need output in specific formats. Think of asking a model to generate JSON - without guidance, it might produce valid text that breaks JSON specification<sup id="fnref:5" role="doc-noteref"><a href="#fn:5" class="footnote" rel="footnote">5</a></sup>.</p>
+
+<p>This is where structured decoding comes in. It enables LLMs to generate outputs that follow a desired structure while preserving the non-deterministic nature of the system.</p>
+
+<p>Companies like OpenAI have recognized this need, implementing features like <a href="https://platform.openai.com/docs/guides/structured-outputs#json-mode">JSON mode</a> to constrain<sup id="fnref:6" role="doc-noteref"><a href="#fn:6" class="footnote" rel="footnote">6</a></sup> the output format. If you have built with these functionalities before (such as agentic workflows, function calling, coding assistant), chances are you are using structured decoding under the hood.</p>
+
+<blockquote>
+  <p>Guided decoding is to LLMs what <strong>validation</strong> is to APIs - it acts as a guarantee that what comes out matches what you expect. Guided decoding ensures structure integrity that allows developers to integrate LLMs into their application with ease!</p>
+</blockquote>
+
+<h2 id="structured-decoding-and-vllm">Structured decoding and vLLM</h2>
+
+<p>In simple terms, structured decoding gives LLMs a “template” to follow. Users provide a schema that “influences” the model’s output, ensuring compliance with the desired structure:</p>
+
+<p><img src="/assets/figures/struct-decode-intro/mermaid-intro.svg" alt="top level view of structure decoding" /></p>
+
+<p>From a technical perspective, an inference engine can modify the probability distribution for next-tokens by applying bias (often via logit masks) for all tokens from any given schemas. To apply these biases, <a href="https://github.com/dottxt-ai/outlines">outlines</a> proposed guided generations via finite-state machine (FSM) for any given schemas (Willard &amp; Louf, 2023). This allows us to track the current state during decoding and filter out invalid tokens by applying logit bias to the output.</p>
+
+<figure>
+  <img src="/assets/figures/struct-decode-intro/constrained-json-fsm.webp" />
+<figcaption>
+courtesy of <a href="https://lmsys.org/blog/2024-02-05-compressed-fsm/" target="_blank">LMSys, 2024</a>.
+</figcaption>
+</figure>
+
+<p><em>in vLLM, you can use this by passing a JSON schema to the sampling params (either through Python SDK or HTTP requests).</em></p>
+
+<blockquote>
+  <p>Note: in some cases, it can even <a href="https://blog.dottxt.co/coalescence.html">improve</a> the native decoding performance for LLM!</p>
+</blockquote>
+
+<h3 id="previous-limitations-in-vllm">Previous limitations in vLLM</h3>
+
+<p>There are few limitations with current vLLM’s support of the Outlines backend:</p>
+
+<ol>
+  <li><strong>Slow decoding</strong>: FSM has to be constructed at a token-level, meaning it can only transition the state one token per step. Therefore, it can only decode <em>one</em> token at a time, resulting in slow decoding.</li>
+  <li><strong>Batch processing bottlenecks</strong>: Implementation in <a href="https://github.com/vllm-project/vllm/blob/80c751e7f68ade3d4c6391a0f3fce9ce970ddad0/vllm/model_executor/guided_decoding/outlines_logits_processors.py">vLLM</a> relies heavily on logit processor<sup id="fnref:7" role="doc-noteref"><a href="#fn:7" class="footnote" rel="footnote">7</a></sup>. As such, this is on the critical path of the sampling process. In batching use-case, compiling FSM per requests as well as computing the mask synchronous means that <strong>all requests</strong> in any given batches will get blocked, resulting in high time-to-first-tokens (TTFT) and lower throughput.
+    <ul>
+      <li>We found that compiling FSM is proven to be a relatively expensive task, making it a significant contributor to the increased TTFT.</li>
+    </ul>
+  </li>
+  <li><strong>Performance issues with CFG mode</strong>: With outlines integrations, while JSON mode is relatively fast, the CFG mode runs significantly slower, and can occasionally <a href="https://github.com/vllm-project/vllm/issues/10081">crashes</a> the engine.</li>
+  <li><strong>Limited advanced feature support</strong>: Techniques like <a href="https://lmsys.org/blog/2024-02-05-compressed-fsm/">jump-forward decoding</a> are currently not possible with logit-processor approach. It requires prefilling a set of k-next tokens, whereas for logit processors we can only deal with the next-token.</li>
+</ol>
+
+<h3 id="integration-with-xgrammar">Integration with XGrammar</h3>
+
+<p><a href="https://github.com/mlc-ai/xgrammar">XGrammar</a> introduces a new technique that batch constrained decoding via pushdown automaton (PDA). You can think of a PDA as a “collection of FSMs, and each FSM represents a context-free grammar (CFG).” One significant advantage of PDA is its recursive nature, allowing us to execute multiple state transitions. They also include additional <a href="https://blog.mlc.ai/2024/11/22/achieving-efficient-flexible-portable-structured-generation-with-xgrammar">optimisation</a> (for those who are interested) to reduce grammar compilation overhead.</p>
+
+<p>This advancement addresses <strong>limitation (1)</strong> by moving grammar compilation out of Python into C, utilising <code class="language-plaintext highlighter-rouge">pthread</code>. Additionally, XGrammar lays the groundwork for addressing <strong>limitation (4)</strong> in future releases. Below are performance comparisons between the XGrammar and Outlines backends:</p>
+
+<figure>
+  <img src="/assets/figures/struct-decode-intro/vllm-new-xgrammar.png" />
+  <img src="/assets/figures/struct-decode-intro/vllm-xgrammar-decode-time-per-output-token.png" />
+<figcaption>
+courtesy of Michael Goin (Red Hat).
+</figcaption>
+</figure>
+
+<p>In vLLM’s v0 architecture, we’ve implemented XGrammar as a <a href="https://github.com/vllm-project/vllm/blob/main/vllm/model_executor/guided_decoding/xgrammar_decoding.py">logit processor</a>, optimizing it with caching for tokenizer data. While the performance improvements are encouraging, we believe there’s still significant room for optimization.</p>
+
+<p>There are still a few usability concerns in XGrammar v0 integration to match feature parity with all use cases:</p>
+
+<ul>
+  <li>It is yet to support grammars other than GBNF format (PR on vLLM: <a href="https://github.com/vllm-project/vllm/pull/10870">github</a>)</li>
+  <li>It is yet to support regex</li>
+  <li>It is yet to support complex JSON that uses regex patterns or numeric ranges
+    <ul>
+      <li>There are a few PR trying to cover this usage. There was one <a href="https://github.com/vllm-project/vllm/pull/10899">bugfix PR on vLLM</a> and one <a href="https://github.com/mlc-ai/xgrammar/pull/106">upstream</a></li>
+    </ul>
+  </li>
+</ul>
+
+<blockquote>
+  <p>vLLM now has a basic support for XGrammar by default. In case where we know XGrammar is insufficient to serve the request, we fall back to Outlines.</p>
+
+  <p>Note that vLLM also includes support for lm-format-enforcer. However, from our testing we found that in some long context test cases, lm-format-enforcer fails to enforce correct outputs, and not up to par with Outlines in terms of performance.</p>
+</blockquote>
+
+<h2 id="tentative-plans-for-v1">Tentative plans for v1</h2>
+
+<p>With the release of <a href="https://github.com/vllm-project/vllm/issues/8779">v1</a> on the horizon, we’re working on a tentative plan for structured decoding:</p>
+
+<ol>
+  <li>Moving guided decoding towards scheduler-level <a href="https://www.notion.so/Blog-4X-structured-decoding-speed-in-vLLM-8c3f2d44f6504202abbdb534983f2b2e?pvs=21">[10]</a>
+    <ul>
+      <li>Reason: We have more context regarding which requests that use structured decoding at a scheduler-level, therefore it shouldn’t block other requests within the batch (tentatively addressing <strong>limitation (2)</strong>). In a sense, this moves guided decoding outside of the critical path.</li>
+      <li>This would allow for more natural vertical integration with jump-forward decoding (address <strong>limitation (4)</strong>).</li>
+    </ul>
+  </li>
+  <li>Allowing bit-mask calculation in one process instead of each GPU workers
+    <ul>
+      <li>Reason: We can broadcast this bit-mask to each GPU worker instead of repeating this process per GPU worker.</li>
+      <li>We will look to carefully analyze the bandwidth implications of broadcasting masks for every sample per request that use guided decoding.</li>
+    </ul>
+  </li>
+  <li>Good baseline for speculative decoding and tool-use
+    <ul>
+      <li>Reason: XGrammar includes plans to support tool-use, such that we can move away from Python’s <a href="https://github.com/vllm-project/vllm/tree/main/vllm/entrypoints/openai/tool_parsers">tool parser</a>.</li>
+      <li>Tree scoring in speculative decoding can then use the same API as jump-forward decoding (which depends on the integration of guided decoding at the scheduler level).</li>
+    </ul>
+  </li>
+</ol>
+
+<p><em>NOTE: if you have any more suggestions we are more than happy to take it into consideration. Consider joining <a href="https://www.notion.so/bentoml/slack.vllm.ai">vLLM slack</a> via <code class="language-plaintext highlighter-rouge">#feat-structured-output</code>.</em></p>
+
+<h2 id="acknowledgements">Acknowledgements</h2>
+
+<p>We want to thank the vLLM team, XGrammar team, <a href="https://github.com/aarnphm">Aaron Pham (BentoML)</a>, <a href="https://github.com/mgoin">Michael Goin (Red Hat)</a>, <a href="https://github.com/xuechendi">Chendi Xue (Intel)</a>, and <a href="https://github.com/russellb">Russell Bryant (Red Hat)</a> for their valuable feedback and collaboration on bringing XGrammar to vLLM and the continuous effort to improve structured decoding in vLLM.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li>Bahdanau, D., Cho, K., &amp; Bengio, Y. (2016). <em>Neural Machine Translation by Jointly Learning to Align and Translate</em>. arXiv preprint arXiv:1409.0473</li>
+  <li>Haugeland, J. (1997). <em>Mind Design II: Philosophy, Psychology, and Artificial Intelligence</em>. The MIT Press. <a href="https://doi.org/10.7551/mitpress/4626.001.0001">https://doi.org/10.7551/mitpress/4626.001.0001</a></li>
+  <li>Hendler, J. (2008). Avoiding Another AI Winter. <em>IEEE Intelligent Systems</em>, <em>23</em>(2), 2–4. <a href="https://doi.org/10.1109/MIS.2008.20">https://doi.org/10.1109/MIS.2008.20</a></li>
+  <li>Hochreiter, S., &amp; Schmidhuber, J. (1997). Long Short-Term Memory. <em>Neural Computation</em>.</li>
+  <li>Kaplan, J., McCandlish, S., Henighan, T., Brown, T. B., Chess, B., Child, R., Gray, S., Radford, A., Wu, J., &amp; Amodei, D. (2020). <em>Scaling Laws for Neural Language Models</em>. arXiv preprint arXiv:2001.08361</li>
+  <li>Mikolov, T., Chen, K., Corrado, G., &amp; Dean, J. (2013). <em>Efficient Estimation of Word Representations in Vector Space</em>. arXiv preprint arXiv:1301.3781</li>
+  <li>Rosenblatt, F. (1958). The perceptron: A probabilistic model for information storage and organization in the brain. <em>Psychological Review</em>, <em>65</em>(6), 386–408. <a href="https://doi.org/10.1037/h0042519">https://doi.org/10.1037/h0042519</a></li>
+  <li>Rumelhart, D. E., McClelland, J. L., &amp; Group, P. R. (1986). <em>Parallel Distributed Processing, Volume 1: Explorations in the Microstructure of Cognition: Foundations</em>. The MIT Press. <a href="https://doi.org/10.7551/mitpress/5236.001.0001">https://doi.org/10.7551/mitpress/5236.001.0001</a></li>
+  <li>Shortliffe, E. H. (1974). <em>MYCIN: A Rule-Based Computer Program for Advising Physicians Regarding Antimicrobial Therapy Selection</em> (Technical Report STAN-CS-74-465). Stanford University.</li>
+  <li>Statistical Machine Translation. (n.d.). <em>IBM Models</em>. Statistical Machine Translation Survey. <a href="http://www2.statmt.org/survey/Topic/IBMModels">http://www2.statmt.org/survey/Topic/IBMModels</a></li>
+  <li>Turing, A. M. (1950). i.—Computing Machinery And Intelligence. <em>Mind</em>, <em>LIX</em>(236), 433–460. <a href="https://doi.org/10.1093/mind/LIX.236.433">https://doi.org/10.1093/mind/LIX.236.433</a></li>
+  <li>Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L., &amp; Polosukhin, I. (2023). <em>Attention Is All You Need</em>. arXiv preprint arXiv:1706.03762</li>
+  <li>Willard, B. T., &amp; Louf, R. (2023). <em>Efficient Guided Generation for Large Language Models</em>. arXiv preprint arXiv:2307.09702</li>
+</ul>
+
+<hr />
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:1" role="doc-endnote">
+
+      <p>Allen Newell and Herbert Simon’s work at RAND initially showed that computers can simulate important aspects of intelligence.</p>
+
+      <p>Another notable application was found in the medical domain (Haugeland, 1997). MYCIN, developed at Stanford University in the 1970s, diagnosed and recommended treatments for blood infections (Shortliffe, 1974). MYCIN’s developers recognized the importance of justifying recommendations, implementing what were known as “rule traces” to explain the system’s reasoning in human-understandable terms. <a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:2" role="doc-endnote">
+
+      <p>In the 1990s, IBM released a sequence of complex statistical models that is trained to perform machine translations <a href="https://en.wikipedia.org/wiki/IBM_alignment_models">tasks</a> (Statistical Machine Translation, n.d.) (see also: this <a href="https://www.cs.cornell.edu/courses/cs5740/2017sp/lectures/08-alignments.pdf">lecture</a> from Cornell).</p>
+
+      <p>In 2001, Bag of words (BoW)-variants model was trained on 0.3B tokens and was considered SOTA at the time (Mikolov et al., 2013). These earlier works proved to the research community that statistical modelling triumphs over symbolic counterpart for language processing given it can capture the general patterns for large corpuses of text. <a href="#fnref:2" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:3" role="doc-endnote">
+
+      <p>In 2017, The landmark paper “Attention is all You Need” introduced Transformers architecture (Vaswani et al., 2023) for neural machine translations tasks, which is based on the attention mechanism first proposed by (Bahdanau et al., 2016).</p>
+
+      <p>OpenAI then introduced the scaling law for neural language models (Kaplan et al., 2020), which sets off the race towards building these systems based on foundational language models. <a href="#fnref:3" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:4" role="doc-endnote">
+
+      <p>Prior to Attention-based transformers, seq-to-seq models uses RNNs given its ability for longer context length and better memory. However, they are more susceptible to vanishing/exploding gradients comparing to feed-forward network, and thus LSTM (Hochreiter &amp; Schmidhuber, 1997) was proposed to solve this problem. Yet, one of the main problems with LSTM is that they tend to have poor memory recall with data they have seen many steps ago.</p>
+
+      <p>The Attention paper addresses this problem by encoding additional positional data into the inputs. The paper also additionally proposed a encoder-decoder architecture for translation tasks, however, most of text-generation models nowadays are decoder-only, given its superior performance over zero-shot tasks.</p>
+
+      <p>One of the many reasons why attention-based transformers works better than LSTM is because transformers are very scalable and hardware-aware (you can’t just arbitrary add more LSTM block and hope for better long-term retention). For more information, please refer back to the original paper. <a href="#fnref:4" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:5" role="doc-endnote">
+
+      <p>One might argue that we can reliably achieve these through few-shot promptings, i.e “Give me a JSON that yields the address of users. Example output can be …”. However, there is no guarantee that the generated outputs is a valid JSON. This is because these models are probabilistic systems, as they are “sampling” the next results based on the distribution of data that it was trained on.</p>
+
+      <p>One might also argue that one should use specific fine-tuned models for JSON outputs to perform such cases. However, fine-tuning often requires extensive training and a lot more labor to curate data, monitor progress, and perform evaluation, which is a huge resources not everyone can afford to do. <a href="#fnref:5" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:6" role="doc-endnote">
+      <p>Note that the phrase “[structured/constrained/guided] decoding” are used interchangeably, but they all refer to the same mechanism of “using a format for the model to structurally sampling outputs.” <a href="#fnref:6" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:7" role="doc-endnote">
+      <p>See this <a href="https://huggingface.co/blog/logits-processor-zoo">blog post</a> from HuggingFace for using logit processors to control the generation process. <a href="#fnref:7" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>]]></content><author><name>Guest Post by BentoML and Red Hat</name></author><summary type="html"><![CDATA[TL/DR:]]></summary></entry><entry><title type="html">vLLM 2024 Retrospective and 2025 Vision</title><link href="https://blog.vllm.ai/2025/01/10/vllm-2024-wrapped-2025-vision.html" rel="alternate" type="text/html" title="vLLM 2024 Retrospective and 2025 Vision" /><published>2025-01-10T00:00:00-08:00</published><updated>2025-01-10T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/10/vllm-2024-wrapped-2025-vision</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/10/vllm-2024-wrapped-2025-vision.html"><![CDATA[<p>The vLLM community achieved remarkable growth in 2024, evolving from a specialized inference engine to become the de facto serving solution for the open-source AI ecosystem. This transformation is reflected in our growth metrics:</p>
+
+<ul>
+  <li>GitHub stars grew from 14,000 to 32,600 (2.3x)</li>
+  <li>Contributors expanded from 190 to 740 (3.8x)</li>
+  <li>Monthly downloads surged from 6,000 to 27,000 (4.5x)</li>
+  <li>GPU hours increased approximately 10x over the last six months</li>
+  <li>Explore more usage data at <a href="https://2024.vllm.ai">https://2024.vllm.ai</a></li>
+</ul>
+
+<p>vLLM has established itself as the leading open-source LLM serving and inference engine, with widespread adoption in production applications (e.g., powering Amazon Rufus and LinkedIn AI features). Our bi-monthly meetups have become strategic gatherings for partnerships with industry leaders like IBM, AWS, and NVIDIA, marking our progress toward becoming the universal serving solution for the open-source AI ecosystem. Read on for more details about vLLM’s 2024 achievements and 2025 roadmap!</p>
+
+<p><em>This blog is based on the 16th session of the bi-weekly <a href="https://hubs.li/Q02TFDTT0">vLLM Office Hours</a>. Watch the recording <a href="https://www.youtube.com/watch?v=xmz8lHsrbGM">here</a>.</em></p>
+
+<hr />
+
+<h2 id="2024-achievements-scaling-models-hardware-and-features">2024 Achievements: Scaling Models, Hardware, and Features</h2>
+
+<h3 id="community-contributions-and-growth">Community Contributions and Growth</h3>
+
+<figure>
+  <img src="/assets/figures/vllm-2024-wrapped-2025-roadmap/vllm-contributor-groups.png" />
+<figcaption>
+vLLM Main Contributor Groups (by Commits)
+</figcaption>
+</figure>
+
+<p>2024 was an exceptional year for vLLM! Our contribution community has expanded dramatically to include:</p>
+
+<ul>
+  <li>15+ full-time contributors across 6+ organizations</li>
+  <li>20+ active organizations as key stakeholders and sponsors</li>
+  <li>Contributions from top institutions including UC Berkeley, Neural Magic, Anyscale, Roblox, IBM, AMD, Intel, and NVIDIA, as well as individual developers worldwide</li>
+  <li>A thriving ecosystem connecting model creators, hardware vendors, and optimization developers</li>
+  <li>Well-attended bi-weekly office hours facilitating transparency, community growth, and strategic partnerships</li>
+</ul>
+
+<p>These numbers reflect more than growth—they demonstrate vLLM’s role as critical infrastructure in the AI ecosystem, supporting everything from research prototypes to production systems serving millions of users.</p>
+
+<h3 id="expanding-model-support">Expanding Model Support</h3>
+
+<figure>
+  <img src="/assets/figures/vllm-2024-wrapped-2025-roadmap/model-architecture-serving-usage.png" />
+<figcaption>
+Usage by Model Architecture in Serving
+</figcaption>
+</figure>
+
+<p>At the beginning of 2024, vLLM supported only a handful of models. By year’s end, the project had evolved to support performant inference for almost <a href="https://docs.vllm.ai/en/latest/models/supported_models.html"><strong>100 model architectures</strong></a>: spanning nearly every prominent open-source large language model (LLM), multimodal (image, audio, video), encoder-decoder, speculative decoding, classification, embedding, and reward models. Notably, vLLM introduced production support for state-space language models, exploring the future of non-transformer language models.</p>
+
+<h3 id="broadening-hardware-compatibility">Broadening Hardware Compatibility</h3>
+
+<figure>
+  <img src="/assets/figures/vllm-2024-wrapped-2025-roadmap/gpu-hours-by-vendor.png" />
+<figcaption>
+GPU Hours Breakdown by Hardware Vendor
+</figcaption>
+</figure>
+
+<p>From the initial hardware target of NVIDIA A100 GPUs, vLLM has expanded to support:</p>
+
+<ul>
+  <li><strong>NVIDIA GPUs:</strong> First-class optimizations for H100, with support for every NVIDIA GPU from V100 and newer.</li>
+  <li><strong>AMD GPUs:</strong> Support for MI200, MI300, and Radeon RX 7900 series - with rapidly growing adoption for MI300X.</li>
+  <li><strong>Google TPUs:</strong> Support for TPU v4, v5p, v5e, and the latest v6e.</li>
+  <li><strong>AWS Inferentia and Trainium:</strong> Supports for trn1/inf2 instances.</li>
+  <li><strong>Intel Gaudi (HPU) and GPU (XPU):</strong> Leveraging Intel GPU and Gaudi architectures for AI workloads.</li>
+  <li><strong>CPUs:</strong> Featuring support for a growing list of ISAs - x86, ARM, and PowerPC.</li>
+</ul>
+
+<p>vLLM’s hardware compatibility has broadened to address diverse user requirements while incorporating performance improvements. Importantly, vLLM is on the path to ensure that all models work on all hardware platforms, with all the optimizations enabled.</p>
+
+<h3 id="delivering-key-features">Delivering Key Features</h3>
+
+<figure>
+  <img src="/assets/figures/vllm-2024-wrapped-2025-roadmap/quantization-deployment-percentage.png" />
+<figcaption>
+Increasing Percentage of vLLM Deployments with Quantization
+</figcaption>
+</figure>
+
+<p>vLLM’s 2024 development roadmap emphasized performance, scalability, and usability:</p>
+
+<ul>
+  <li><strong>Weight and Activation Quantization:</strong> Added support for diverse quantization methods and kernels, enabling efficient inference across hardware platforms. Notable integrations include activation quantization for FP8+INT8, Marlin+Machete kernels for GPTQ/AWQ/wNa16, FP8 KV Cache, AQLM, QQQ, HQQ, bitsandbytes, and GGUF. Over 20% of vLLM deployments now use quantization.</li>
+  <li><strong>Automatic Prefix Caching:</strong> Reduced costs and improved latency for context-heavy applications.</li>
+  <li><strong>Chunked Prefill:</strong> Enhanced stability of inter-token latency for interactive applications.</li>
+  <li><strong>Speculative Decoding:</strong> Accelerated token generation through simultaneous token prediction and validation, supporting draft models, n-gram matching in prompts, and MLP speculators like Medusa or EAGLE.</li>
+  <li><strong>Structured Outputs:</strong> Provided high-performance capabilities for applications requiring specific formats like JSON or pydantic schemas.</li>
+  <li><strong>Tool Calling:</strong> Enabled models with supported chat templates to generate tool calls autonomously, facilitating data processing and agentic flows.</li>
+  <li><strong>Distributed Inference:</strong> Introduced pipeline parallelism and disaggregated prefill to effectively scale workloads across GPUs and nodes.</li>
+</ul>
+
+<hr />
+
+<h2 id="our-2025-vision">Our 2025 Vision</h2>
+
+<p>In 2025, we anticipate a significant push in the boundaries of scaling for both pretraining and inference-time scaling. We believe that open-source models are rapidly catching up to proprietary ones, and through distillation, these massive models are becoming smaller, more intelligent, and more practical for production deployment.</p>
+
+<h3 id="emerging-model-capabilities-gpt-4o-class-models-served-on-single-node">Emerging Model Capabilities: GPT-4o Class Models served on single node</h3>
+
+<p>Our vision is ambitious yet concrete: enabling GPT-4o level performance on a single GPU, GPT-4o on a single node, and next generation scale capabilities on a modest cluster. To achieve this, we’re focusing on three key optimization frontiers:</p>
+
+<ul>
+  <li>
+    <p>KV cache and attention optimization with sliding windows, cross-layer attention, and native quantization</p>
+  </li>
+  <li>
+    <p>MoE optimizations targeting architecture with shared experts and large numbers of fine-grained experts</p>
+  </li>
+  <li>
+    <p>Extended long context support through alternative architectures like state space models</p>
+  </li>
+</ul>
+
+<p>Beyond raw performance, we’re tailoring vLLM for specialized vertical applications. Each use case demands specific optimizations: reasoning applications need custom tokens and flexible reasoning steps, coding requires fill-in-the-middle capabilities and prompt lookup decoding, agent frameworks benefit from tree-based caching, and creative applications need diverse sampling strategies including beam search variants and contrastive decode.</p>
+
+<p>We’re also expanding vLLM’s role in the model training process. Recent adoption by prominent researchers like John Schulman signals our growing importance in post-training workflows. We’ll provide tight integration with data curation and post-training processes, making vLLM an essential tool across the full AI development lifecycle.</p>
+
+<h3 id="practical-scale-powering-thousands-of-production-clusters">Practical Scale: Powering Thousands of Production Clusters</h3>
+
+<p>As LLMs become the backbone of modern applications, we envision vLLM powering thousands of production clusters running 24/7. These aren’t experimental deployments—they’re mission-critical systems handling constant traffic for product features, maintained by dedicated platform teams.</p>
+
+<p>To support this scale, we’re making vLLM truly battery-included for production applications. Quantization, prefix caching, and speculative decoding will become default features rather than optional optimizations. Structured output generation will be standard rather than exceptional. We’re developing comprehensive recipes for routing, caching, and auto-scaling that span the full lifecycle of production deployments.</p>
+
+<p>As deployments scale beyond single replicas, we’re creating stable interfaces for cluster-level solutions. This includes robust default configurations tuned for popular models and hardware platforms, along with flexible optimization paths for diverse use cases. We’re fostering a community dedicated to pushing the boundaries of vLLM efficiency, ensuring our platform evolves to meet new challenges.</p>
+
+<h3 id="open-architecture-the-foundation-of-our-future">Open Architecture: The Foundation of Our Future</h3>
+
+<p>The key to vLLM’s continued success lies in its open architecture. We’re shipping a ground-up rearchitecture with our V1 release that exemplifies this philosophy. Every component – from model architectures to scheduling policies, memory management to sampling strategies – is designed to be modified and extended in both research and private forks.</p>
+
+<p>Our commitment to openness extends beyond just code. We’re introducing:</p>
+
+<ul>
+  <li>
+    <p>Pluggable architectures for seamless integration of new models, hardware backends, and custom extensions</p>
+  </li>
+  <li>
+    <p>First-class <code class="language-plaintext highlighter-rouge">torch.compile</code> support, enabling custom operation fusion passes and rapid experimentation</p>
+  </li>
+  <li>
+    <p>A flexible component system that supports private extensions while maintaining core stability</p>
+  </li>
+</ul>
+
+<p>We’re doubling down on community development, coordinating engineering efforts across organizations while celebrating ecosystem projects. This includes growing our core team through a clear recruitment process and organizational structure. The goal isn’t just to make vLLM the best choice technically – it’s to ensure that everyone who invests in vLLM finds themselves better off for having done so.</p>
+
+<p>Our architecture is more than just a technical choice; it’s a commitment to creating a connected ecosystem through extensibility and modification rather than lock-in. By making vLLM both powerful and customizable, we ensure its place at the heart of the AI inference ecosystem.</p>
+
+<hr />
+
+<h2 id="a-bit-of-reflection">A Bit of Reflection</h2>
+
+<p>As we reflect on vLLM’s journey, some key themes emerge that have shaped our growth and continue to guide our path forward.</p>
+
+<h3 id="building-bridges-in-the-ai-ecosystem">Building Bridges in the AI Ecosystem</h3>
+
+<p>What started as an inference engine has evolved into something far more significant: a platform that bridges previously distinct worlds in the AI landscape. Model creators, hardware vendors, and optimization specialists have found in vLLM a unique amplifier for their contributions. When hardware teams develop new accelerators, vLLM provides immediate access to a broad application ecosystem. When researchers devise novel optimization techniques, vLLM offers a production-ready platform to demonstrate real-world impact. This virtuous cycle of <strong>contribution and amplification has become core to our identity</strong>, driving us to continuously improve the platform’s accessibility and extensibility.</p>
+
+<h3 id="managing-growth-while-maintaining-excellence">Managing Growth While Maintaining Excellence</h3>
+
+<p>Our exponential growth in 2024 brought both opportunities and challenges. The rapid expansion of our codebase and contributor base created unprecedented velocity, enabling us to tackle ambitious technical challenges and respond quickly to community needs. However, this growth also increased the complexity of our codebase. Rather than allowing technical debt to accumulate, we made the decisive choice to invest in our foundation. The second half of 2024 saw us undertake an ambitious redesign of vLLM’s core architecture, culminating in what we now call our V1 architecture. This wasn’t just a technical refresh – it was a deliberate move to ensure that our platform remains maintainable and modular as we scale to meet the needs of an expanding AI ecosystem.</p>
+
+<h3 id="pioneering-a-new-model-of-open-source-development">Pioneering a New Model of Open Source Development</h3>
+
+<p>Perhaps our most unique challenge has been <strong>building a world-class engineering organization</strong> through a network of sponsored volunteers. Unlike traditional open source projects that rely on funding from a single organization, vLLM is charting a different course. We’re creating a collaborative environment where multiple organizations contribute not just code, but resources and strategic direction. This model brings novel challenges in coordination, planning, and execution, but it also offers unprecedented opportunities for innovation and resilience. We’re learning – and sometimes inventing – best practices for everything from distributed decision-making to remote collaboration across organizational boundaries.</p>
+
+<h3 id="our-unwavering-commitment">Our Unwavering Commitment</h3>
+
+<p>Through all these changes and challenges, our fundamental mission remains clear: building the <strong>world’s fastest and easiest-to-use open-source LLM inference and serving engine</strong>. We believe that by lowering the barriers to efficient AI inference, we can help make advanced AI applications more practical and accessible for everyone. This isn’t just about technical excellence – it’s about creating a foundation that enables the entire AI community to move forward faster, together.</p>
+
+<hr />
+
+<h2 id="usage-data-collection">Usage Data Collection</h2>
+
+<p>The metrics and insights throughout this post are powered by vLLM’s <a href="https://github.com/vllm-project/vllm/blob/main/vllm/usage/usage_lib.py">usage system</a>, which collects anonymized deployment data. Each vLLM instance generates a UUID and reports technical metrics including:</p>
+
+<ul>
+  <li>Hardware specs (GPU count/type, CPU architecture, available memory)</li>
+  <li>Model configuration (architecture, dtype, tensor parallelism degree)</li>
+  <li>Runtime settings (quantization type, prefix caching enabled)</li>
+  <li>Deployment context (cloud provider, platform, vLLM version)</li>
+</ul>
+
+<p>This telemetry helps prioritize optimizations for common hardware configurations and identify which features need performance improvements. The data is collected locally in <code class="language-plaintext highlighter-rouge">~/.config/vllm/usage_stats.json</code>. Users can opt out by setting <code class="language-plaintext highlighter-rouge">VLLM_NO_USAGE_STATS=1</code>, <code class="language-plaintext highlighter-rouge">DO_NOT_TRACK=1</code>, or creating <code class="language-plaintext highlighter-rouge">~/.config/vllm/do_not_track</code>. The implementation details and full schema are available in our <a href="https://docs.vllm.ai/en/latest/serving/usage_stats.html">usage stats documentation</a>.</p>
+
+<hr />
+
+<h2 id="join-the-journey">Join the Journey</h2>
+
+<p>vLLM’s 2024 journey demonstrates the transformative potential of open-source collaboration. With a clear vision for 2025, the project is poised to redefine AI inference, making it more accessible, scalable, and efficient. Whether through code contributions, attending <a href="https://hubs.li/Q02TFDTT0">vLLM Office Hours</a>, or adopting vLLM in production, every participant helps shape the future of this fast-moving project.</p>
+
+<p>As we enter 2025, we continue to encourage community participation through:</p>
+
+<ul>
+  <li><strong>Contributing Code:</strong> Help refine vLLM’s core functionality or extend its capabilities—many RFCs and features need additional support</li>
+  <li><strong>Providing Feedback:</strong> Share insights on features and use cases to shape vLLM’s roadmap via GitHub, Slack, Discord, or events</li>
+  <li><strong>Building with vLLM:</strong> Adopt the platform in your projects, develop your expertise, and share your experience</li>
+</ul>
+
+<p>Join the <a href="https://slack.vllm.ai/">vLLM Developer Slack</a> to get mentored by project leaders and work at the forefront of AI inference innovation.</p>
+
+<p><strong>Together, we’ll advance open-source AI innovation in 2025!</strong></p>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[The vLLM community achieved remarkable growth in 2024, evolving from a specialized inference engine to become the de facto serving solution for the open-source AI ecosystem. This transformation is reflected in our growth metrics:]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/vllm-2024-wrapped-2025-roadmap/model-architecture-serving-usage.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/vllm-2024-wrapped-2025-roadmap/model-architecture-serving-usage.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry><entry><title type="html">Installing and Developing vLLM with Ease</title><link href="https://blog.vllm.ai/2025/01/10/dev-experience.html" rel="alternate" type="text/html" title="Installing and Developing vLLM with Ease" /><published>2025-01-10T00:00:00-08:00</published><updated>2025-01-10T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/10/dev-experience</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/10/dev-experience.html"><![CDATA[<p>The field of LLM inference is advancing at an unprecedented pace. With new models and features emerging weekly, the traditional software release pipeline often struggles to keep up. At vLLM, we aim to provide more than just a software package. We’re building a system—a trusted, trackable, and participatory ecosystem for LLM inference. This blog post highlights how vLLM enables users to install and develop with ease while staying at the forefront of innovation.</p>
 
 <h2 id="tldr">TL;DR:</h2>
 

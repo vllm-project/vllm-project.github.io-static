@@ -742,5 +742,8 @@ table td {
     width: calc(50% - 30px / 2);
   }
 }
+figure > figcaption {
+  font-style: italic;
+}
 
 /*# sourceMappingURL=style.css.map */
