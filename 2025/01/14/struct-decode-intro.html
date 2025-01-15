@@ -180,7 +180,7 @@ courtesy of Michael Goin (Red Hat).
 <p>With the release of <a href="https://github.com/vllm-project/vllm/issues/8779">v1</a> on the horizon, we’re working on a tentative plan for structured decoding:</p>
 
 <ol>
-  <li>Moving guided decoding towards scheduler-level <a href="https://www.notion.so/Blog-4X-structured-decoding-speed-in-vLLM-8c3f2d44f6504202abbdb534983f2b2e?pvs=21">[10]</a>
+  <li>Moving guided decoding towards scheduler-level:
     <ul>
       <li>Reason: We have more context regarding which requests that use structured decoding at a scheduler-level, therefore it shouldn’t block other requests within the batch (tentatively addressing <strong>limitation (2)</strong>). In a sense, this moves guided decoding outside of the critical path.</li>
       <li>This would allow for more natural vertical integration with jump-forward decoding (address <strong>limitation (4)</strong>).</li>
