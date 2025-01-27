@@ -1,4 +1,380 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="https://blog.vllm.ai/feed.xml" rel="self" type="application/atom+xml" /><link href="https://blog.vllm.ai/" rel="alternate" type="text/html" /><updated>2025-01-27T08:16:06-08:00</updated><id>https://blog.vllm.ai/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">vLLM V1: A Major Upgrade to vLLM’s Core Architecture</title><link href="https://blog.vllm.ai/2025/01/27/v1-alpha-release.html" rel="alternate" type="text/html" title="vLLM V1: A Major Upgrade to vLLM’s Core Architecture" /><published>2025-01-27T00:00:00-08:00</published><updated>2025-01-27T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/27/v1-alpha-release</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/27/v1-alpha-release.html"><![CDATA[<p align="center">
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="https://blog.vllm.ai/feed.xml" rel="self" type="application/atom+xml" /><link href="https://blog.vllm.ai/" rel="alternate" type="text/html" /><updated>2025-01-27T11:38:30-08:00</updated><id>https://blog.vllm.ai/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">Introducing vLLM Inference Provider in Llama Stack</title><link href="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html" rel="alternate" type="text/html" title="Introducing vLLM Inference Provider in Llama Stack" /><published>2025-01-27T00:00:00-08:00</published><updated>2025-01-27T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html"><![CDATA[<p>We are excited to announce that vLLM inference provider is now available in <a href="https://github.com/meta-llama/llama-stack">Llama Stack</a> through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster.</p>
+
+<h1 id="what-is-llama-stack">What is Llama Stack?</h1>
+
+<p><img align="right" src="/assets/figures/llama-stack/llama-stack.png" alt="llama-stack-diagram" width="50%" height="50%" /></p>
+
+<p>Llama Stack defines and standardizes the set of core building blocks needed to bring generative AI applications to market. These building blocks are presented in the form of interoperable APIs with a broad set of Service Providers providing their implementations.</p>
+
+<p>Llama Stack focuses on making it easy to build production applications with a variety of models - ranging from the latest Llama 3.3 model to specialized models like Llama Guard for safety and other models. The goal is to provide pre-packaged implementations (aka “distributions”) which can be run in a variety of deployment environments. The Stack can assist you in your entire app development lifecycle - start iterating on local, mobile or desktop and seamlessly transition to on-prem or public cloud deployments. At every point in this transition, the same set of APIs and the same developer experience are available.</p>
+
+<p>Each specific implementation of an API is called a “Provider” in this architecture. Users can swap providers via configuration. <code class="language-plaintext highlighter-rouge">vLLM</code> is a prominent example of a high-performance API backing the inference API.</p>
+
+<h1 id="vllm-inference-provider">vLLM Inference Provider</h1>
+
+<p>Llama Stack provides two vLLM inference providers:</p>
+<ol>
+  <li><a href="https://llama-stack.readthedocs.io/en/latest/distributions/self_hosted_distro/remote-vllm.html">Remote vLLM inference provider</a> through vLLM’s <a href="https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-completions-api-with-vllm">OpenAI-compatible server</a>;</li>
+  <li><a href="https://github.com/meta-llama/llama-stack/tree/main/llama_stack/providers/inline/inference/vllm">Inline vLLM inference provider</a> that runs alongside with Llama Stack server.</li>
+</ol>
+
+<p>In this article, we will demonstrate the functionality through the remote vLLM inference provider.</p>
+
+<h1 id="tutorial">Tutorial</h1>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<ul>
+  <li>Linux operating system</li>
+  <li><a href="https://huggingface.co/docs/huggingface_hub/main/en/guides/cli">Hugging Face CLI</a> if you’d like to download the model via CLI.</li>
+  <li>OCI-compliant container technologies like <a href="https://podman.io/">Podman</a> or <a href="https://www.docker.com/">Docker</a> (can be specified via the <code class="language-plaintext highlighter-rouge">CONTAINER_BINARY</code> environment variable when running <code class="language-plaintext highlighter-rouge">llama stack</code> CLI commands).</li>
+  <li><a href="https://kind.sigs.k8s.io/">Kind</a> for Kubernetes deployment.</li>
+  <li><a href="https://github.com/conda/conda">Conda</a> for managing Python environment.</li>
+</ul>
+
+<h2 id="get-started-via-containers">Get Started via Containers</h2>
+
+<h3 id="start-vllm-server">Start vLLM Server</h3>
+
+<p>We first download the “Llama-3.2-1B-Instruct” model using the <a href="https://huggingface.co/docs/huggingface_hub/main/en/guides/cli">Hugging Face CLI</a>. Note that you’ll need to specify your Hugging Face token when logging in.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir</span> /tmp/test-vllm-llama-stack
+huggingface-cli login <span class="nt">--token</span> &lt;YOUR-HF-TOKEN&gt;
+huggingface-cli download meta-llama/Llama-3.2-1B-Instruct <span class="nt">--local-dir</span> /tmp/test-vllm-llama-stack/.cache/huggingface/hub/models/Llama-3.2-1B-Instruct
+</code></pre></div></div>
+
+<p>Next, let’s build the vLLM CPU container image from source. Note that while we use it for demonstration purposes, there are plenty of <a href="https://docs.vllm.ai/en/latest/getting_started/installation/index.html">other images available for different hardware and architectures</a>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone git@github.com:vllm-project/vllm.git /tmp/test-vllm-llama-stack
+cd /tmp/test-vllm-llama-stack/vllm
+podman build -f Dockerfile.cpu -t vllm-cpu-env --shm-size=4g .
+</code></pre></div></div>
+
+<p>We can then start the vLLM container:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>podman run <span class="nt">-it</span> <span class="nt">--network</span><span class="o">=</span>host <span class="se">\</span>
+   <span class="nt">--group-add</span><span class="o">=</span>video <span class="se">\</span>
+   <span class="nt">--ipc</span><span class="o">=</span>host <span class="se">\</span>
+   <span class="nt">--cap-add</span><span class="o">=</span>SYS_PTRACE <span class="se">\</span>
+   <span class="nt">--security-opt</span> <span class="nv">seccomp</span><span class="o">=</span>unconfined <span class="se">\</span>
+   <span class="nt">--device</span> /dev/kfd <span class="se">\</span>
+   <span class="nt">--device</span> /dev/dri <span class="se">\</span>
+   <span class="nt">-v</span> /tmp/test-vllm-llama-stack/.cache/huggingface/hub/models/Llama-3.2-1B-Instruct:/app/model <span class="se">\</span>
+   <span class="nt">--entrypoint</span><span class="o">=</span><span class="s1">'["python3", "-m", "vllm.entrypoints.openai.api_server", "--model", "/app/model", "--served-model-name", "meta-llama/Llama-3.2-1B-Instruct", "--port", "8000"]'</span> <span class="se">\</span>
+    vllm-cpu-env
+</code></pre></div></div>
+
+<p>We can get a list of models and test a prompt once the model server has started:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl http://localhost:8000/v1/models
+
+curl http://localhost:8000/v1/completions <span class="se">\</span>
+    <span class="nt">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="se">\</span>
+    <span class="nt">-d</span> <span class="s1">'{
+        "model": "meta-llama/Llama-3.2-1B-Instruct",
+        "prompt": "San Francisco is a",
+        "max_tokens": 7,
+        "temperature": 0
+    }'</span>
+</code></pre></div></div>
+
+<h3 id="start-llama-stack-server">Start Llama Stack Server</h3>
+
+<p>Once we verify that the vLLM server has started successfully and is able to serve requests, we can then build and start the Llama Stack server.</p>
+
+<p>First, we clone the Llama Stack source code and create a Conda environment that includes all the dependencies:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone git@github.com:meta-llama/llama-stack.git /tmp/test-vllm-llama-stack/llama-stack
+cd /tmp/test-vllm-llama-stack/llama-stack
+conda create -n stack python=3.10
+conda activate stack
+pip install .
+</code></pre></div></div>
+
+<p>Next, we build the container image with <code class="language-plaintext highlighter-rouge">llama stack build</code>:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &gt; /tmp/test-vllm-llama-stack/vllm-llama-stack-build.yaml &lt;&lt; "EOF"
+name: vllm
+distribution_spec:
+  description: Like local, but use vLLM for running LLM inference
+  providers:
+    inference: remote::vllm
+    safety: inline::llama-guard
+    agents: inline::meta-reference
+    vector_io: inline::faiss
+    datasetio: inline::localfs
+    scoring: inline::basic
+    eval: inline::meta-reference
+    post_training: inline::torchtune
+    telemetry: inline::meta-reference
+image_type: container
+EOF
+
+export CONTAINER_BINARY=podman
+LLAMA_STACK_DIR=. PYTHONPATH=. python -m llama_stack.cli.llama stack build --config /tmp/test-vllm-llama-stack/vllm-llama-stack-build.yaml --image-name distribution-myenv
+</code></pre></div></div>
+
+<p>Once the container image has been built successfully, we can then edit the generated <code class="language-plaintext highlighter-rouge">vllm-run.yaml</code> to be <code class="language-plaintext highlighter-rouge">/tmp/test-vllm-llama-stack/vllm-llama-stack-run.yaml</code> with the following change in the <code class="language-plaintext highlighter-rouge">models</code> field:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>models:
+- metadata: {}
+  model_id: ${env.INFERENCE_MODEL}
+  provider_id: vllm
+  provider_model_id: null
+</code></pre></div></div>
+
+<p>Then we can start the LlamaStack Server with the image we built via <code class="language-plaintext highlighter-rouge">llama stack run</code>:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>export INFERENCE_ADDR=host.containers.internal
+export INFERENCE_PORT=8000
+export INFERENCE_MODEL=meta-llama/Llama-3.2-1B-Instruct
+export LLAMA_STACK_PORT=5000
+
+LLAMA_STACK_DIR=. PYTHONPATH=. python -m llama_stack.cli.llama stack run \
+--env INFERENCE_MODEL=$INFERENCE_MODEL \
+--env VLLM_URL=http://$INFERENCE_ADDR:$INFERENCE_PORT/v1 \
+--env VLLM_MAX_TOKENS=8192 \
+--env VLLM_API_TOKEN=fake \
+--env LLAMA_STACK_PORT=$LLAMA_STACK_PORT \
+/tmp/test-vllm-llama-stack/vllm-llama-stack-run.yaml
+</code></pre></div></div>
+
+<p>Alternatively, we can run the following <code class="language-plaintext highlighter-rouge">podman run</code> command instead:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>podman run --security-opt label=disable -it --network host -v /tmp/test-vllm-llama-stack/vllm-llama-stack-run.yaml:/app/config.yaml -v /tmp/test-vllm-llama-stack/llama-stack:/app/llama-stack-source \
+--env INFERENCE_MODEL=$INFERENCE_MODEL \
+--env VLLM_URL=http://$INFERENCE_ADDR:$INFERENCE_PORT/v1 \
+--env VLLM_MAX_TOKENS=8192 \
+--env VLLM_API_TOKEN=fake \
+--env LLAMA_STACK_PORT=$LLAMA_STACK_PORT \
+--entrypoint='["python", "-m", "llama_stack.distribution.server.server", "--yaml-config", "/app/config.yaml"]' \
+localhost/distribution-myenv:dev
+</code></pre></div></div>
+
+<p>Once we start the Llama Stack server successfully, we can then start testing a inference request:</p>
+
+<p>Via Bash:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>llama-stack-client --endpoint http://localhost:5000 inference chat-completion --message "hello, what model are you?"
+</code></pre></div></div>
+
+<p>Output:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ChatCompletionResponse(
+    completion_message=CompletionMessage(
+        content="Hello! I'm an AI, a conversational AI model. I'm a type of computer program designed to understand and respond to human language. My creators have 
+trained me on a vast amount of text data, allowing me to generate human-like responses to a wide range of questions and topics. I'm here to help answer any question you 
+may have, so feel free to ask me anything!",
+        role='assistant',
+        stop_reason='end_of_turn',
+        tool_calls=[]
+    ),
+    logprobs=None
+)
+</code></pre></div></div>
+
+<p>Via Python:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">os</span>
+<span class="kn">from</span> <span class="n">llama_stack_client</span> <span class="kn">import</span> <span class="n">LlamaStackClient</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="nc">LlamaStackClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="sa">f</span><span class="sh">"</span><span class="s">http://localhost:</span><span class="si">{</span><span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">[</span><span class="sh">'</span><span class="s">LLAMA_STACK_PORT</span><span class="sh">'</span><span class="p">]</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+
+<span class="c1"># List available models
+</span><span class="n">models</span> <span class="o">=</span> <span class="n">client</span><span class="p">.</span><span class="n">models</span><span class="p">.</span><span class="nf">list</span><span class="p">()</span>
+<span class="nf">print</span><span class="p">(</span><span class="n">models</span><span class="p">)</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="p">.</span><span class="n">inference</span><span class="p">.</span><span class="nf">chat_completion</span><span class="p">(</span>
+    <span class="n">model_id</span><span class="o">=</span><span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">[</span><span class="sh">"</span><span class="s">INFERENCE_MODEL</span><span class="sh">"</span><span class="p">],</span>
+    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="sh">"</span><span class="s">role</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">system</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">content</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">You are a helpful assistant.</span><span class="sh">"</span><span class="p">},</span>
+        <span class="p">{</span><span class="sh">"</span><span class="s">role</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">user</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">content</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">Write a haiku about coding</span><span class="sh">"</span><span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="n">completion_message</span><span class="p">.</span><span class="n">content</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Output:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Model(identifier='meta-llama/Llama-3.2-1B-Instruct', metadata={}, api_model_type='llm', provider_id='vllm', provider_resource_id='meta-llama/Llama-3.2-1B-Instruct', type='model', model_type='llm')]
+Here is a haiku about coding:
+
+Columns of code flow
+Logic codes the endless night
+Tech's silent dawn rise
+</code></pre></div></div>
+
+<h2 id="deployment-on-kubernetes">Deployment on Kubernetes</h2>
+
+<p>Instead of starting the Llama Stack and vLLM servers locally. We can deploy them in a Kubernetes cluster. We’ll use a local Kind cluster for demonstration purposes:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kind create cluster --image kindest/node:v1.32.0 --name llama-stack-test
+</code></pre></div></div>
+
+<p>Start vLLM server as a Kubernetes Pod and Service (remember to replace <code class="language-plaintext highlighter-rouge">&lt;YOUR-HF-TOKEN&gt;</code> with your actual token):</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF |kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vllm-models
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hf-token-secret
+type: Opaque
+data:
+  token: "&lt;YOUR-HF-TOKEN&gt;"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vllm-server
+  labels:
+    app: vllm
+spec:
+  containers:
+  - name: llama-stack
+    image: localhost/vllm-cpu-env:latest
+    command:
+        - bash
+        - -c
+        - |
+          MODEL="meta-llama/Llama-3.2-1B-Instruct"
+          MODEL_PATH=/app/model/$(basename $MODEL)
+          huggingface-cli login --token $HUGGING_FACE_HUB_TOKEN
+          huggingface-cli download $MODEL --local-dir $MODEL_PATH --cache-dir $MODEL_PATH
+          python3 -m vllm.entrypoints.openai.api_server --model $MODEL_PATH --served-model-name $MODEL --port 8000
+    ports:
+      - containerPort: 8000
+    volumeMounts:
+      - name: llama-storage
+        mountPath: /app/model
+    env:
+      - name: HUGGING_FACE_HUB_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: hf-token-secret
+            key: token
+  volumes:
+  - name: llama-storage
+    persistentVolumeClaim:
+      claimName: vllm-models
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-server
+spec:
+  selector:
+    app: vllm
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: NodePort
+EOF
+</code></pre></div></div>
+
+<p>We can verify that the vLLM server has started successfully via the logs (this might take a couple of minutes to download the model):</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ kubectl logs vllm-server
+...
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+</code></pre></div></div>
+
+<p>Then we can modify the previously created <code class="language-plaintext highlighter-rouge">vllm-llama-stack-run.yaml</code> to <code class="language-plaintext highlighter-rouge">/tmp/test-vllm-llama-stack/vllm-llama-stack-run-k8s.yaml</code> with the following inference provider:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>providers:
+  inference:
+  - provider_id: vllm
+    provider_type: remote::vllm
+    config:
+      url: ${env.VLLM_URL}
+      max_tokens: ${env.VLLM_MAX_TOKENS:4096}
+      api_token: ${env.VLLM_API_TOKEN:fake}
+</code></pre></div></div>
+
+<p>Once we have defined the run configuration for Llama Stack, we can build an image with that configuration the server source code:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &gt;/tmp/test-vllm-llama-stack/Containerfile.llama-stack-run-k8s &lt;&lt;EOF
+FROM distribution-myenv:dev
+
+RUN apt-get update &amp;&amp; apt-get install -y git
+RUN git clone https://github.com/meta-llama/llama-stack.git /app/llama-stack-source
+
+ADD ./vllm-llama-stack-run-k8s.yaml /app/config.yaml
+EOF
+podman build -f /tmp/test-vllm-llama-stack/Containerfile.llama-stack-run-k8s -t llama-stack-run-k8s /tmp/test-vllm-llama-stack
+</code></pre></div></div>
+
+<p>We can then start the LlamaStack server by deploying a Kubernetes Pod and Service:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF |kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llama-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: llama-stack-pod
+  labels:
+    app: llama-stack
+spec:
+  containers:
+  - name: llama-stack
+    image: localhost/llama-stack-run-k8s:latest
+    imagePullPolicy: IfNotPresent
+    command: ["python", "-m", "llama_stack.distribution.server.server", "--yaml-config", "/app/config.yaml"]
+    ports:
+      - containerPort: 5000
+    volumeMounts:
+      - name: llama-storage
+        mountPath: /root/.llama
+  volumes:
+  - name: llama-storage
+    persistentVolumeClaim:
+      claimName: llama-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-stack-service
+spec:
+  selector:
+    app: llama-stack
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+  type: ClusterIP
+EOF
+</code></pre></div></div>
+
+<p>We can check that the LlamaStack server has started:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ kubectl logs vllm-server
+...
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://['::', '0.0.0.0']:5000 (Press CTRL+C to quit)
+</code></pre></div></div>
+
+<p>Now let’s forward the Kubernetes service to a local port and test some inference requests against it via the Llama Stack Client:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl port-forward service/llama-stack-service 5000:5000
+llama-stack-client --endpoint http://localhost:5000 inference chat-completion --message "hello, what model are you?"
+</code></pre></div></div>
+
+<p>You can learn more about different providers and functionalities of Llama Stack on <a href="https://llama-stack.readthedocs.io">the official documentation</a>.</p>
+
+<h2 id="acknowledgement">Acknowledgement</h2>
+
+<p>We’d like to thank the Red Hat AI Engineering team for the implementation of the vLLM inference providers, contributions to many bug fixes, improvements, and key design discussions. We also want to thank the Llama Stack team from Meta and the vLLM team for their timely PR reviews and bug fixes.</p>]]></content><author><name>Yuan Tang (Red Hat) and Ashwin Bharambe (Meta)</name></author><summary type="html"><![CDATA[We are excited to announce that vLLM inference provider is now available in Llama Stack through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster.]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/llama-stack/llama-stack.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/llama-stack/llama-stack.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry><entry><title type="html">vLLM V1: A Major Upgrade to vLLM’s Core Architecture</title><link href="https://blog.vllm.ai/2025/01/27/v1-alpha-release.html" rel="alternate" type="text/html" title="vLLM V1: A Major Upgrade to vLLM’s Core Architecture" /><published>2025-01-27T00:00:00-08:00</published><updated>2025-01-27T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/27/v1-alpha-release</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/27/v1-alpha-release.html"><![CDATA[<p align="center">
 <picture>
 <img src="/assets/figures/v1/vLLM_V1_Logo.png" width="80%" />
 </picture>
@@ -204,7 +580,112 @@ V1 currently supports only Ampere or later NVIDIA GPUs. We are actively working 
   <li><a href="https://github.com/LiuXiaoxuanPKU">Lily Liu</a> is implementing the speculative decoding support.</li>
   <li><a href="https://github.com/KuntaiDu">Kuntai Du</a> is implementing the prefill disaggregation and KV Cache transfer support.</li>
   <li><a href="https://github.com/simon-mo">Simon Mo</a> and <a href="https://github.com/zhuohan123">Zhuohan Li</a> contributed to the V1 system design.</li>
-</ul>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/v1/vLLM_V1_Logo.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/v1/vLLM_V1_Logo.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry><entry><title type="html">Structured Decoding in vLLM: a gentle introduction</title><link href="https://blog.vllm.ai/2025/01/14/struct-decode-intro.html" rel="alternate" type="text/html" title="Structured Decoding in vLLM: a gentle introduction" /><published>2025-01-14T00:00:00-08:00</published><updated>2025-01-14T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/14/struct-decode-intro</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/14/struct-decode-intro.html"><![CDATA[<p><strong>TL/DR</strong>:</p>
+</ul>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/v1/vLLM_V1_Logo.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/v1/vLLM_V1_Logo.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry><entry><title type="html">High Performance and Easy Deployment of vLLM in K8S with “vLLM production-stack”</title><link href="https://blog.vllm.ai/2025/01/21/stack-release.html" rel="alternate" type="text/html" title="High Performance and Easy Deployment of vLLM in K8S with “vLLM production-stack”" /><published>2025-01-21T00:00:00-08:00</published><updated>2025-01-21T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/21/stack-release</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/21/stack-release.html"><![CDATA[<p><br /></p>
+
+<h2 id="tldr">TL;DR</h2>
+<ul>
+  <li><strong>vLLM</strong> boasts the largest open-source community, but what does it take to transform vLLM from the best single-node LLM engine to a premier LLM serving system?</li>
+  <li><strong>Today, we release “vLLM production-stack”</strong>, a vLLM-based full inference stack that introduces two major advantages:
+    <ul>
+      <li><strong>10x better performance</strong> (3-10x lower response delay &amp; 2-5x higher throughput) with prefix-aware request routing and KV-cache sharing.</li>
+      <li><strong>Easy cluster deployment</strong> with built-in support for fault tolerance, autoscaling, and observability.</li>
+    </ul>
+  </li>
+  <li>And the best part? It’s <strong>open-source</strong>—so everyone can get started right away! <a href="https://github.com/vllm-project/production-stack">[<strong>https://github.com/vllm-project/production-stack</strong>]</a></li>
+</ul>
+
+<h1 id="the-context">The Context</h1>
+<!-- Over the past year, LLM inference has raced to the forefront, powering everything from chatbots to code assistants and beyond. It’s quickly becoming critical infrastructure, much like the cloud was to big data, cellular was to mobile apps, and CDNs were (and still are!) to the broader Internet. -->
+
+<p><em>In the AI arms race, it’s no longer just about who has the best model—it’s about <strong>who has the best LLM serving system</strong>.</em></p>
+
+<p><strong>vLLM</strong> has taken the open-source community by storm, with unparalleled hardware and model support plus an active ecosystem of top-notch contributors. But until now, vLLM has mostly focused on <strong>single-node</strong> deployments.</p>
+
+<p>How do we extend its power into a <strong>full-stack</strong> inference system that any organization can deploy at scale with <em>high reliability</em>, <em>high throughput</em>, and <em>low latency</em>? That’s precisely why the LMCache team and the vLLM team built <strong>vLLM production-stack</strong>.</p>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-thumbnail.png" alt="Icon" style="width: 60%; vertical-align:middle;" />
+</div>
+
+<h1 id="introducing-vllm-production-stack">Introducing “<em>vLLM Production-Stack</em>”</h1>
+<p><strong>vLLM Production-stack</strong> is an open-source <strong>reference implementation</strong> of an <strong>inference stack</strong> built on top of vLLM, designed to run seamlessly on a cluster of GPU nodes. It adds four critical functionalities that complement vLLM’s native strengths:</p>
+<ul>
+  <li><strong>KV cache sharing &amp; storage</strong> to speed up inference when context is reused (powered by the <a href="https://github.com/LMCache/LMCache"><strong>LMCache</strong></a> project).</li>
+  <li><strong>Prefix-aware routing</strong> that sends queries to the vLLM instance already holding the relevant context KV cache.</li>
+  <li><strong>Observability</strong> of individual engine status and query-level metrics (TTFT, TBT, throughput).</li>
+  <li><strong>Autoscaling</strong> to handle dynamics of workloads.</li>
+</ul>
+
+<h3 id="comparison-with-alternatives">Comparison with Alternatives:</h3>
+
+<p>Below is a quick snapshot comparing vLLM production-stack with its closest counterparts:</p>
+<div align="center">
+<img src="/assets/figures/stack/stack-table.png" alt="Icon" style="width: 90%; vertical-align:middle;" />
+</div>
+
+<h3 id="the-design">The Design</h3>
+<p>The vLLM production-stack architecture builds on top of vLLM’s powerful single-node engine to provide a cluster-wide solution.</p>
+
+<p>At a high level:</p>
+<ul>
+  <li>Applications send LLM inference requests.</li>
+  <li>Prefix-aware routing checks if the requested context is already cached within the memory pool of one instance. It then forwards the request to the node with the pre-computed cache.</li>
+  <li>Autoscaling and a cluster manager watch the overall load and spin up new vLLM nodes if needed.</li>
+  <li>Observability modules gather metrics like TTFT (Time-To-First-Token), TBT (Time-Between-Tokens), and throughput, giving you real-time insights into your system’s health.</li>
+</ul>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-overview-2.png" alt="Icon" style="width: 90%; vertical-align:middle;" />
+</div>
+
+<h1 id="advantage-1-easy-deployment">Advantage #1: Easy Deployment</h1>
+
+<p>Use helm chart to deploy the vLLM production-stack to your k8s cluster through running a single command:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo helm repo add llmstack-repo https://lmcache.github.io/helm/ &amp;&amp;\
+  sudo helm install llmstack llmstack-repo/vllm-stack 
+</code></pre></div></div>
+
+<p>For more details, please refer to the detailed README at <a href="https://github.com/vllm-project/production-stack">vLLM production-stack repo</a>. <a href="https://github.com/LMCache/LMStack/tree/main/tutorials">Tutorials</a> about setting up k8s cluster and customizing helm charts are also available.</p>
+
+<h1 id="advantage-2-better-performance">Advantage #2: Better Performance</h1>
+<p>We conduct a benchmark of multi-round Q&amp;A workload on vLLM production-stack and other setups, including vLLM + KServe and an commercial endpoint service.
+The results show vLLM stack outperforms other setups across key metrics (time to first token and inter token latency).</p>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-ttft.png" alt="Icon" style="width: 60%; vertical-align:middle;" />
+</div>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-itl.png" alt="Icon" style="width: 60%; vertical-align:middle;" />
+</div>
+
+<h1 id="advantage-3-effortless-monitoring">Advantage #3: Effortless Monitoring</h1>
+<p>Keep real-time tracking of your LLM inference cluster with key metrics including latency distributions, number of requests over time, KV cache hit rate.</p>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-panel.png" alt="Icon" style="width: 70%; vertical-align:middle;" />
+</div>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>We’re thrilled to unveil <strong>vLLM Production Stack</strong>—the next step in transforming vLLM from a best-in-class single-node engine into a full-scale LLM serving system. 
+We believe the vLL stack will open new doors for organizations seeking to build, test, and deploy LLM applications at scale without sacrificing performance or simplicity.</p>
+
+<p>If you’re as excited as we are, don’t wait!</p>
+<ul>
+  <li><strong>Clone the repo: <a href="https://github.com/vllm-project/production-stack">https://github.com/vllm-project/production-stack</a></strong></li>
+  <li><strong>Kick the tires</strong></li>
+  <li><strong>Let us know what you think!</strong></li>
+  <li><strong><a href="https://forms.gle/mQfQDUXbKfp2St1z7">Interest Form</a></strong></li>
+</ul>
+
+<p>Join us to build a future where every application can harness the power of LLM inference—reliably, at scale, and without breaking a sweat.
+<em>Happy deploying!</em></p>
+
+<p>Contacts:</p>
+<ul>
+  <li><strong>vLLM <a href="https://slack.vllm.ai/">slack</a></strong></li>
+  <li><strong>LMCache <a href="https://join.slack.com/t/lmcacheworkspace/shared_invite/zt-2viziwhue-5Amprc9k5hcIdXT7XevTaQ">slack</a></strong></li>
+</ul>]]></content><author><name>LMCache Team</name></author><summary type="html"><![CDATA[]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/stack/stack-thumbnail.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/stack/stack-thumbnail.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry><entry><title type="html">Structured Decoding in vLLM: a gentle introduction</title><link href="https://blog.vllm.ai/2025/01/14/struct-decode-intro.html" rel="alternate" type="text/html" title="Structured Decoding in vLLM: a gentle introduction" /><published>2025-01-14T00:00:00-08:00</published><updated>2025-01-14T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/14/struct-decode-intro</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/14/struct-decode-intro.html"><![CDATA[<p><strong>TL/DR</strong>:</p>
 
 <ul>
   <li>Structured decoding allows precise control over LLM output formats</li>
@@ -650,7 +1131,7 @@ Increasing Percentage of vLLM Deployments with Quantization
 <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>uv pip <span class="nb">install </span>vllm
 </code></pre></div></div>
 
-<p>Refer to the <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#install-released-versions">documentation</a> for more details on setting up <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a>. Using a simple server-grade setup (Intel 8th Gen CPU), we observe that <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a> is 200x faster than pip:</p>
+<p>Refer to the <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html?device=cuda#create-a-new-python-environment">documentation</a> for more details on setting up <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a>. Using a simple server-grade setup (Intel 8th Gen CPU), we observe that <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a> is 200x faster than pip:</p>
 
 <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># with cached packages, clean virtual environment</span>
 <span class="nv">$ </span><span class="nb">time </span>pip <span class="nb">install </span>vllm
@@ -694,11 +1175,11 @@ uv pip <span class="nb">install </span>vllm 0.17s user 0.57s system 193% cpu 0.3
 
 <p>The <code class="language-plaintext highlighter-rouge">VLLM_USE_PRECOMPILED=1</code> flag instructs the installer to use pre-compiled CUDA kernels instead of building them from source, significantly reducing installation time. This is perfect for developers focusing on Python-level features like API improvements, model support, or integration work.</p>
 
-<p>This lightweight process runs efficiently, even on a laptop. Refer to our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#python-only-build-without-compilation">documentation</a> for more advanced usage.</p>
+<p>This lightweight process runs efficiently, even on a laptop. Refer to our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html?device=cuda#build-wheel-from-source">documentation</a> for more advanced usage.</p>
 
 <h3 id="ckernel-developers">C++/Kernel Developers</h3>
 
-<p>For advanced contributors working with C++ code or CUDA kernels, we incorporate a compilation cache to minimize build time and streamline kernel development. Please check our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#full-build-with-compilation">documentation</a> for more details.</p>
+<p>For advanced contributors working with C++ code or CUDA kernels, we incorporate a compilation cache to minimize build time and streamline kernel development. Please check our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html?device=cuda#build-wheel-from-source">documentation</a> for more details.</p>
 
 <h2 id="track-changes-with-ease">Track Changes with Ease</h2>
 
@@ -1566,195 +2047,4 @@ d transparent as well.</p>
   <li><a href="https://arxiv.org/abs/2405.04437">vAttention: Dynamic Memory Management for Serving LLMs without PagedAttention</a></li>
   <li><a href="https://arxiv.org/abs/2404.16283">Andes: Defining and Enhancing Quality-of-Experience in LLM-Based Text Streaming Services</a></li>
   <li><a href="https://arxiv.org/abs/2312.07104">SGLang: Efficient Execution of Structured Language Model Programs</a></li>
-</ul>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[We would like to share two updates to the vLLM community.]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/lfai/vllm-lfai-light.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/lfai/vllm-lfai-light.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry><entry><title type="html">Announcing Llama 3.1 Support in vLLM</title><link href="https://blog.vllm.ai/2024/07/23/llama31.html" rel="alternate" type="text/html" title="Announcing Llama 3.1 Support in vLLM" /><published>2024-07-23T00:00:00-07:00</published><updated>2024-07-23T00:00:00-07:00</updated><id>https://blog.vllm.ai/2024/07/23/llama31</id><content type="html" xml:base="https://blog.vllm.ai/2024/07/23/llama31.html"><![CDATA[<p>Today, the vLLM team is excited to partner with Meta to announce the support for the Llama 3.1 model series. Llama 3.1 comes with exciting new features with longer context length (up to 128K tokens), larger model size (up to 405B parameters), and more advanced model capabilities. The vLLM community has added many enhancements to make sure the longer, larger Llamas run smoothly on vLLM, which includes chunked prefill, FP8 quantization, and pipeline parallelism. We will introduce these new enhancements in this blogpost.</p>
-
-<h3 id="introduction">Introduction</h3>
-
-<p>vLLM is a fast, easy-to-use, open-source serving engine for large language models. vLLM has support for more than 40 types of open-source LLMs, a diverse set of hardware platforms (Nvidia GPU, AMD GPU, AWS Inferentia, Google TPU, Intel CPU, GPU, Gaudi, …) and all kinds of inference optimizations. Learn more about vLLM <a href="https://docs.vllm.ai/">here</a>.</p>
-
-<p>For the new Llama 3.1 series, vLLM can run the models with a full 128K context window. In order to support a large context window, vLLM automatically enables <a href="https://www.linkedin.com/posts/joinanyscale_recently-weve-contributed-chunked-prefill-activity-7201277641490849792-lGqZ">chunked prefill</a>. Chunked prefill not only keeps memory usage under control, but also reduces the interruption from long prompt processing for ongoing requests. You can install vLLM by running the following command or using our official docker image (<code class="language-plaintext highlighter-rouge">vllm/vllm-openai</code>):</p>
-
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>pip <span class="nb">install</span> <span class="nt">-U</span> vllm
-</code></pre></div></div>
-
-<p>For the large Llama 405B model, vLLM supports it in several methods:</p>
-<ul>
-  <li><strong>FP8:</strong> vLLM runs the official FP8 quantized model natively on 8xA100 or 8xH100.</li>
-  <li><strong>Pipeline Parallelism:</strong> vLLM runs the official BF16 version on multiple nodes by placing different layers of the model on different nodes.</li>
-  <li><strong>Tensor Parallelism:</strong> vLLM can also run by sharding the model across multiple nodes, and multiple GPUs within the nodes.</li>
-  <li><strong>AMD MI300x or NVIDIA H200:</strong> vLLM can run the model on a single 8xMI300x or 8xH200 machine, where each GPU has 192GB and 141 GB memory, respectively.</li>
-  <li><strong>CPU Offloading:</strong> as the last resort, vLLM can offload some of the weights to CPU while performing the forward pass, allowing you to run the large model at full precision on limited GPU memory.</li>
-</ul>
-
-<p>Please note that while vLLM supports all these methods, the performance is still preliminary. The vLLM community is actively working on optimizations and we welcome everyone’s contribution. For example, we are actively exploring more approaches to quantize the model, and to increase the throughput of pipeline parallelism. The performance numbers posted later in the blog are meant as early reference points; we expect the performance to improve significantly over the next few weeks.</p>
-
-<p>Out of all the methods, we recommend FP8 for a single node, and pipeline parallelism for multiple nodes. Let’s discuss them in more detail.</p>
-
-<h3 id="fp8">FP8</h3>
-
-<p>FP8 represents float point numbers in 8 bits. The current generation of GPUs (H100, MI300x) provide native support for FP8 via specialized tensor cores. Currently, vLLM can run FP8 quantized models for KV cache, attention, and MLP layers. This reduces memory footprint, increases throughput, lowers latency, and comes with minimal accuracy drops.</p>
-
-<p>Currently, vLLM supports the official Meta Llama 3.1 405B FP8 model quantized via FBGEMM by leveraging per-channel quantization in the MLP layer. In particular, each channel of the up/gate/down projections are quantized and multiplied by a static scaling factor. Combined with skipping quantization for the first and the last layer, and a static upper bound, this approach has minimal impact on the model’s accuracy. You can run the model with latest vLLM on a single 8xH100 or 8xA100 with the following command:</p>
-
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vllm serve meta-llama/Meta-Llama-3.1-405B-Instruct-FP8 <span class="nt">--tensor-parallel-size</span> 8
-</code></pre></div></div>
-
-<p>Using the FP8 quantized model serving requests with the average input length of 1024 tokens and the average output length of 128 output tokens, the server can sustain 2.82 requests per second. The corresponding serving throughput is 2884.86 input tokens per second and 291.53 output tokens per seconds, respectively.</p>
-
-<p>We also independently confirmed the accuracy drop of the FP8 checkpoints is minimal. For example, running the GSM8K benchmark using lm-eval-harness with 8 shots and chain-of-thought, we observed the exact match score of 95.38% (+- 0.56% stddev), which is a minimal drop compared to the BF16 official score of 96.8%.</p>
-
-<h3 id="pipeline-parallelism">Pipeline Parallelism</h3>
-
-<p>What if you want to run the Llama 3.1 405B model without quantization? You can do it with 16xH100 or 16xA100 GPUs using vLLM’s pipeline parallelism!</p>
-
-<p>Pipeline parallelism splits a model into smaller sets of layers, executing them in parallel on two or more nodes in a pipelined fashion. Unlike tensor parallelism, which requires expensive all-reduce operations, pipeline parallelism partitions the model across layer boundaries, needing only inexpensive point-to-point communication. This is particularly useful when you have multiple nodes that are not necessarily connected via fast interconnects like Infiniband.</p>
-
-<p>vLLM supports combining pipeline and tensor parallelism. For example, with 16 GPUs across 2 nodes, you can use 2-way pipeline parallelism and 8-way tensor parallelism to optimize hardware usage. This configuration maps half the model to each node, partitioning each layer across 8 GPUs using NVLink for all-reduce operations. You can run the Llama 3.1 405B model with the following command:</p>
-
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vllm serve meta-llama/Meta-Llama-3.1-405B-Instruct <span class="nt">--tensor-parallel-size</span> 8 <span class="nt">--pipeline-parallel-size</span> 2
-</code></pre></div></div>
-
-<p>If you have fast interconnects like Infiniband, you can use 16-way tensor parallelism:</p>
-
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>vllm serve meta-llama/Meta-Llama-3.1-405B-Instruct <span class="nt">--tensor-parallel-size</span> 16
-</code></pre></div></div>
-
-<p align="center">
-<picture>
-<img src="/assets/figures/llama31/perf_llama3.png" width="50%" />
-</picture>
-<br />Serving throughput on 16xH100 GPUs with a synthetic dataset (avg. input len 1024, avg. output len 128).
-</p>
-
-<p>We have observed that pipeline parallelism is essential when the nodes are not connected via Infiniband. Compared to 16-way tensor parallelism, combining 2-way pipeline parallelism with 8-way tensor parallelism leads to 6.6x performance improvements. On the other hand, with Infiniband, the performance of both configurations is similar.</p>
-
-<p>To learn more about distributed inference using vLLM please refer to <a href="https://docs.vllm.ai/en/latest/serving/distributed_serving.html">this doc</a>. For CPU offloading, please refer to <a href="https://docs.vllm.ai/en/latest/getting_started/examples/cpu_offload.html">this example</a>.</p>
-
-<p><br /></p>
-
-<hr />
-
-<h3 id="acknowledgements">Acknowledgements</h3>
-
-<p>We would like to thank Meta for the pre-release partnership and letting us test the model. Independently from the release, we thank the following vLLM contributors for the features mentioned in this blogpost: <a href="https://neuralmagic.com/">Neural Magic</a> for FP8 quantization; <a href="https://centml.ai/">CentML</a> and <a href="https://www.snowflake.com/blog/authors/snowflake-ai-research/">Snowflake AI Research</a> for pipeline parallelism; <a href="https://www.anyscale.com/">Anyscale</a> for the chunked prefill feature. The evaluation runs on <a href="https://lambdalabs.com/service/gpu-cloud/1-click-clusters">Lambda’s 1-Click Clusters</a> with InfiniBand, and we thank Lambda for the resource and the smooth cluster setup experience.</p>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[Today, the vLLM team is excited to partner with Meta to announce the support for the Llama 3.1 model series. Llama 3.1 comes with exciting new features with longer context length (up to 128K tokens), larger model size (up to 405B parameters), and more advanced model capabilities. The vLLM community has added many enhancements to make sure the longer, larger Llamas run smoothly on vLLM, which includes chunked prefill, FP8 quantization, and pipeline parallelism. We will introduce these new enhancements in this blogpost.]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/llama31/perf_llama3.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/llama31/perf_llama3.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry><entry><title type="html">Notes on vLLM v.s. DeepSpeed-FastGen</title><link href="https://blog.vllm.ai/2023/11/14/notes-vllm-vs-deepspeed.html" rel="alternate" type="text/html" title="Notes on vLLM v.s. DeepSpeed-FastGen" /><published>2023-11-14T00:00:00-08:00</published><updated>2023-11-14T00:00:00-08:00</updated><id>https://blog.vllm.ai/2023/11/14/notes-vllm-vs-deepspeed</id><content type="html" xml:base="https://blog.vllm.ai/2023/11/14/notes-vllm-vs-deepspeed.html"><![CDATA[<hr />
-<p><strong>TL;DR:</strong></p>
-
-<ul>
-  <li>vLLM matches DeepSpeed-FastGen’s speed in common scenarios and surpasses it when handling longer outputs.</li>
-  <li>DeepSpeed-FastGen only outperforms vLLM in scenarios with long prompts and short outputs, due to its Dynamic SplitFuse optimization. This optimization is on vLLM’s roadmap.</li>
-  <li>vLLM’s mission is to build the fastest and easiest-to-use open-source LLM inference and serving engine. It is Apache 2.0 and community-owned, offering extensive model and optimization support.</li>
-</ul>
-
-<hr />
-
-<p>The DeepSpeed team recently published <a href="https://github.com/microsoft/DeepSpeed/tree/master/blogs/deepspeed-fastgen">a blog post</a> claiming 2x throughput improvement over vLLM, achieved by leveraging the Dynamic SplitFuse technique.
-We are happy to see the technology advancements from the open-source community.
-In this blog, we show the specific scenarios where the Dynamic SplitFuse technique is advantageous, noting that these cases are relatively limited.
-For the majority of workloads, vLLM is faster than (or performs comparably to) DeepSpeed-FastGen.</p>
-
-<h3 id="performance-benchmark">Performance Benchmark</h3>
-
-<p>We’ve identified two key differences between vLLM and DeepSpeed-FastGen in terms of performance optimization:</p>
-
-<ol>
-  <li><strong>DeepSpeed-FastGen adopts a conservative/suboptimal memory allocation scheme</strong>, which wastes memory when output lengths are large.</li>
-  <li>DeepSpeed-FastGen’s Dynamic SplitFuse scheduling gives <strong>speedup only when prompt lengths are much greater than output lengths</strong>.</li>
-</ol>
-
-<p>As a result, DeepSpeed-FastGen outperforms when the workload is consistently long prompt and short output.
-In other scenarios, vLLM shows superior performance.</p>
-
-<p>We benchmarked the two systems on an NVIDIA A100-80GB GPU with the LLaMA-7B model in the following scenarios:</p>
-
-<h4 id="scenario-1-long-prompt-length-short-output">Scenario 1: Long Prompt Length, Short Output</h4>
-<p>Here, DeepSpeed-FastGen’s Dynamic SplitFuse scheduling is expected to shine.
-However, the performance gain we observe isn’t as significant as 2x.</p>
-
-<p align="center">
-<picture>
-<img src="/assets/figures/notes-vllm-vs-deepspeed/s1.png" width="50%" />
-</picture>
-</p>
-
-<h4 id="scenario-2-other-cases">Scenario 2: Other cases</h4>
-<p>In these cases, vLLM is up to <strong>1.8x</strong> faster than DeepSpeed-FastGen.</p>
-
-<p align="center">
-<picture>
-<img src="/assets/figures/notes-vllm-vs-deepspeed/s2.png" width="50%" />
-</picture>
-</p>
-
-<h3 id="vllms-future-a-true-community-project">vLLM’s Future: A True Community Project</h3>
-<p>We are committed to making vLLM the best open-source project incorporating the community’s best models, optimizations, and hardware. Coming out of UC Berkeley Sky Computing Lab, we are building vLLM truly in open source with the Apache 2.0 license.</p>
-
-<p>The vLLM team prioritizes collaborations and we strive to keep the codebase with high quality code and easy to contribute. We are actively working on system performance; as well as new features like LoRA, Speculative Decoding, and better Quantization Support. Additionally, we are collaborating with hardware vendors like AMD, AWS Inferenetia, and Intel Habana to bring LLM to the broadest community.</p>
-
-<p>Specifically for the Dynamic SplitFuse optimization, we are actively investigating the proper integration. If you have any questions and suggestions, please feel free to contact us on <a href="https://github.com/vllm-project/vllm">GitHub</a>. We also published the benchmark code <a href="https://github.com/vllm-project/vllm/blob/main/benchmarks/benchmark_throughput.py">here</a>.</p>
-
-<h3 id="appendix-feature-comparison">Appendix: Feature Comparison</h3>
-
-<p>DeepSpeed-FastGen currently offers basic functionalities, supporting only three model types and lacking popular features like stop strings and parallel sampling (e.g., beam search).
-We do expect the DeepSpeed-FastGen is eager to catch up and we welcome the creative innovation in the market!</p>
-
-<table>
-  <thead>
-    <tr>
-      <th> </th>
-      <th style="text-align: center">vLLM</th>
-      <th style="text-align: center">DeepSpeed-FastGen</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Runtime</td>
-      <td style="text-align: center">Python/PyTorch</td>
-      <td style="text-align: center">Python/PyTorch</td>
-    </tr>
-    <tr>
-      <td>Model implementation</td>
-      <td style="text-align: center">HuggingFace Transformers</td>
-      <td style="text-align: center">Custom implementation + converter for HF models</td>
-    </tr>
-    <tr>
-      <td>Server frontend</td>
-      <td style="text-align: center">Simple FastAPI server for demo purposes</td>
-      <td style="text-align: center">Custom gRPC-based server</td>
-    </tr>
-    <tr>
-      <td>Scheduling</td>
-      <td style="text-align: center">Continuous batching</td>
-      <td style="text-align: center">Dynamic SplitFuse</td>
-    </tr>
-    <tr>
-      <td>Attention kernel</td>
-      <td style="text-align: center">PagedAttention &amp; FlashAttention</td>
-      <td style="text-align: center">PagedAttention &amp; FlashAttention</td>
-    </tr>
-    <tr>
-      <td>Custom kernels (for LLaMA)</td>
-      <td style="text-align: center">Attention, RoPE, RMS, SILU</td>
-      <td style="text-align: center">Attention, RoPE, RMS, SILU, Embedding</td>
-    </tr>
-    <tr>
-      <td>KV Cache allocation</td>
-      <td style="text-align: center">Near-optimal</td>
-      <td style="text-align: center">Suboptimal/conservative</td>
-    </tr>
-    <tr>
-      <td>Supported models</td>
-      <td style="text-align: center">16 different architectures</td>
-      <td style="text-align: center">LLaMA, Mistral, OPT</td>
-    </tr>
-    <tr>
-      <td>Sampling methods</td>
-      <td style="text-align: center">Random, parallel, beam search</td>
-      <td style="text-align: center">Random</td>
-    </tr>
-    <tr>
-      <td>Stop criterion</td>
-      <td style="text-align: center">Stop strings, stop tokens, EOS</td>
-      <td style="text-align: center">EOS</td>
-    </tr>
-  </tbody>
-</table>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[TL;DR:]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/notes-vllm-vs-deepspeed/s2.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/notes-vllm-vs-deepspeed/s2.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry></feed>
+</ul>]]></content><author><name>vLLM Team</name></author><summary type="html"><![CDATA[We would like to share two updates to the vLLM community.]]></summary><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://blog.vllm.ai/assets/figures/lfai/vllm-lfai-light.png" /><media:content medium="image" url="https://blog.vllm.ai/assets/figures/lfai/vllm-lfai-light.png" xmlns:media="http://search.yahoo.com/mrss/" /></entry></feed>

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Introducing vLLM Inference Provider in Llama Stack | vLLM Blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="Introducing vLLM Inference Provider in Llama Stack" />
+<meta name="author" content="Yuan Tang (Red Hat) and Ashwin Bharambe (Meta)" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="We are excited to announce that vLLM inference provider is now available in Llama Stack through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster." />
+<meta property="og:description" content="We are excited to announce that vLLM inference provider is now available in Llama Stack through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster." />
+<link rel="canonical" href="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html" />
+<meta property="og:url" content="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html" />
+<meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:image" content="https://blog.vllm.ai/assets/figures/llama-stack/llama-stack.png" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-01-27T00:00:00-08:00" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="twitter:image" content="https://blog.vllm.ai/assets/figures/llama-stack/llama-stack.png" />
+<meta property="twitter:title" content="Introducing vLLM Inference Provider in Llama Stack" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"Yuan Tang (Red Hat) and Ashwin Bharambe (Meta)"},"dateModified":"2025-01-27T00:00:00-08:00","datePublished":"2025-01-27T00:00:00-08:00","description":"We are excited to announce that vLLM inference provider is now available in Llama Stack through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster.","headline":"Introducing vLLM Inference Provider in Llama Stack","image":"https://blog.vllm.ai/assets/figures/llama-stack/llama-stack.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html"},"url":"https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://blog.vllm.ai/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
+<script>
+  window['ga-disable-G-9C5R3JR3QS'] = window.doNotTrack === "1" || navigator.doNotTrack === "1" || navigator.doNotTrack === "yes" || navigator.msDoNotTrack === "1";
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){window.dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9C5R3JR3QS');
+</script>
+
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">vLLM Blog</a></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Introducing vLLM Inference Provider in Llama Stack</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2025-01-27T00:00:00-08:00" itemprop="datePublished">
+        Jan 27, 2025
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">Yuan Tang (Red Hat) and Ashwin Bharambe (Meta)</span></span></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>We are excited to announce that vLLM inference provider is now available in <a href="https://github.com/meta-llama/llama-stack">Llama Stack</a> through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster.</p>
+
+<h1 id="what-is-llama-stack">What is Llama Stack?</h1>
+
+<p><img align="right" src="/assets/figures/llama-stack/llama-stack.png" alt="llama-stack-diagram" width="50%" height="50%" /></p>
+
+<p>Llama Stack defines and standardizes the set of core building blocks needed to bring generative AI applications to market. These building blocks are presented in the form of interoperable APIs with a broad set of Service Providers providing their implementations.</p>
+
+<p>Llama Stack focuses on making it easy to build production applications with a variety of models - ranging from the latest Llama 3.3 model to specialized models like Llama Guard for safety and other models. The goal is to provide pre-packaged implementations (aka “distributions”) which can be run in a variety of deployment environments. The Stack can assist you in your entire app development lifecycle - start iterating on local, mobile or desktop and seamlessly transition to on-prem or public cloud deployments. At every point in this transition, the same set of APIs and the same developer experience are available.</p>
+
+<p>Each specific implementation of an API is called a “Provider” in this architecture. Users can swap providers via configuration. <code class="language-plaintext highlighter-rouge">vLLM</code> is a prominent example of a high-performance API backing the inference API.</p>
+
+<h1 id="vllm-inference-provider">vLLM Inference Provider</h1>
+
+<p>Llama Stack provides two vLLM inference providers:</p>
+<ol>
+  <li><a href="https://llama-stack.readthedocs.io/en/latest/distributions/self_hosted_distro/remote-vllm.html">Remote vLLM inference provider</a> through vLLM’s <a href="https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-completions-api-with-vllm">OpenAI-compatible server</a>;</li>
+  <li><a href="https://github.com/meta-llama/llama-stack/tree/main/llama_stack/providers/inline/inference/vllm">Inline vLLM inference provider</a> that runs alongside with Llama Stack server.</li>
+</ol>
+
+<p>In this article, we will demonstrate the functionality through the remote vLLM inference provider.</p>
+
+<h1 id="tutorial">Tutorial</h1>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<ul>
+  <li>Linux operating system</li>
+  <li><a href="https://huggingface.co/docs/huggingface_hub/main/en/guides/cli">Hugging Face CLI</a> if you’d like to download the model via CLI.</li>
+  <li>OCI-compliant container technologies like <a href="https://podman.io/">Podman</a> or <a href="https://www.docker.com/">Docker</a> (can be specified via the <code class="language-plaintext highlighter-rouge">CONTAINER_BINARY</code> environment variable when running <code class="language-plaintext highlighter-rouge">llama stack</code> CLI commands).</li>
+  <li><a href="https://kind.sigs.k8s.io/">Kind</a> for Kubernetes deployment.</li>
+  <li><a href="https://github.com/conda/conda">Conda</a> for managing Python environment.</li>
+</ul>
+
+<h2 id="get-started-via-containers">Get Started via Containers</h2>
+
+<h3 id="start-vllm-server">Start vLLM Server</h3>
+
+<p>We first download the “Llama-3.2-1B-Instruct” model using the <a href="https://huggingface.co/docs/huggingface_hub/main/en/guides/cli">Hugging Face CLI</a>. Note that you’ll need to specify your Hugging Face token when logging in.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir</span> /tmp/test-vllm-llama-stack
+huggingface-cli login <span class="nt">--token</span> &lt;YOUR-HF-TOKEN&gt;
+huggingface-cli download meta-llama/Llama-3.2-1B-Instruct <span class="nt">--local-dir</span> /tmp/test-vllm-llama-stack/.cache/huggingface/hub/models/Llama-3.2-1B-Instruct
+</code></pre></div></div>
+
+<p>Next, let’s build the vLLM CPU container image from source. Note that while we use it for demonstration purposes, there are plenty of <a href="https://docs.vllm.ai/en/latest/getting_started/installation/index.html">other images available for different hardware and architectures</a>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone git@github.com:vllm-project/vllm.git /tmp/test-vllm-llama-stack
+cd /tmp/test-vllm-llama-stack/vllm
+podman build -f Dockerfile.cpu -t vllm-cpu-env --shm-size=4g .
+</code></pre></div></div>
+
+<p>We can then start the vLLM container:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>podman run <span class="nt">-it</span> <span class="nt">--network</span><span class="o">=</span>host <span class="se">\</span>
+   <span class="nt">--group-add</span><span class="o">=</span>video <span class="se">\</span>
+   <span class="nt">--ipc</span><span class="o">=</span>host <span class="se">\</span>
+   <span class="nt">--cap-add</span><span class="o">=</span>SYS_PTRACE <span class="se">\</span>
+   <span class="nt">--security-opt</span> <span class="nv">seccomp</span><span class="o">=</span>unconfined <span class="se">\</span>
+   <span class="nt">--device</span> /dev/kfd <span class="se">\</span>
+   <span class="nt">--device</span> /dev/dri <span class="se">\</span>
+   <span class="nt">-v</span> /tmp/test-vllm-llama-stack/.cache/huggingface/hub/models/Llama-3.2-1B-Instruct:/app/model <span class="se">\</span>
+   <span class="nt">--entrypoint</span><span class="o">=</span><span class="s1">'["python3", "-m", "vllm.entrypoints.openai.api_server", "--model", "/app/model", "--served-model-name", "meta-llama/Llama-3.2-1B-Instruct", "--port", "8000"]'</span> <span class="se">\</span>
+    vllm-cpu-env
+</code></pre></div></div>
+
+<p>We can get a list of models and test a prompt once the model server has started:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl http://localhost:8000/v1/models
+
+curl http://localhost:8000/v1/completions <span class="se">\</span>
+    <span class="nt">-H</span> <span class="s2">"Content-Type: application/json"</span> <span class="se">\</span>
+    <span class="nt">-d</span> <span class="s1">'{
+        "model": "meta-llama/Llama-3.2-1B-Instruct",
+        "prompt": "San Francisco is a",
+        "max_tokens": 7,
+        "temperature": 0
+    }'</span>
+</code></pre></div></div>
+
+<h3 id="start-llama-stack-server">Start Llama Stack Server</h3>
+
+<p>Once we verify that the vLLM server has started successfully and is able to serve requests, we can then build and start the Llama Stack server.</p>
+
+<p>First, we clone the Llama Stack source code and create a Conda environment that includes all the dependencies:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone git@github.com:meta-llama/llama-stack.git /tmp/test-vllm-llama-stack/llama-stack
+cd /tmp/test-vllm-llama-stack/llama-stack
+conda create -n stack python=3.10
+conda activate stack
+pip install .
+</code></pre></div></div>
+
+<p>Next, we build the container image with <code class="language-plaintext highlighter-rouge">llama stack build</code>:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &gt; /tmp/test-vllm-llama-stack/vllm-llama-stack-build.yaml &lt;&lt; "EOF"
+name: vllm
+distribution_spec:
+  description: Like local, but use vLLM for running LLM inference
+  providers:
+    inference: remote::vllm
+    safety: inline::llama-guard
+    agents: inline::meta-reference
+    vector_io: inline::faiss
+    datasetio: inline::localfs
+    scoring: inline::basic
+    eval: inline::meta-reference
+    post_training: inline::torchtune
+    telemetry: inline::meta-reference
+image_type: container
+EOF
+
+export CONTAINER_BINARY=podman
+LLAMA_STACK_DIR=. PYTHONPATH=. python -m llama_stack.cli.llama stack build --config /tmp/test-vllm-llama-stack/vllm-llama-stack-build.yaml --image-name distribution-myenv
+</code></pre></div></div>
+
+<p>Once the container image has been built successfully, we can then edit the generated <code class="language-plaintext highlighter-rouge">vllm-run.yaml</code> to be <code class="language-plaintext highlighter-rouge">/tmp/test-vllm-llama-stack/vllm-llama-stack-run.yaml</code> with the following change in the <code class="language-plaintext highlighter-rouge">models</code> field:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>models:
+- metadata: {}
+  model_id: ${env.INFERENCE_MODEL}
+  provider_id: vllm
+  provider_model_id: null
+</code></pre></div></div>
+
+<p>Then we can start the LlamaStack Server with the image we built via <code class="language-plaintext highlighter-rouge">llama stack run</code>:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>export INFERENCE_ADDR=host.containers.internal
+export INFERENCE_PORT=8000
+export INFERENCE_MODEL=meta-llama/Llama-3.2-1B-Instruct
+export LLAMA_STACK_PORT=5000
+
+LLAMA_STACK_DIR=. PYTHONPATH=. python -m llama_stack.cli.llama stack run \
+--env INFERENCE_MODEL=$INFERENCE_MODEL \
+--env VLLM_URL=http://$INFERENCE_ADDR:$INFERENCE_PORT/v1 \
+--env VLLM_MAX_TOKENS=8192 \
+--env VLLM_API_TOKEN=fake \
+--env LLAMA_STACK_PORT=$LLAMA_STACK_PORT \
+/tmp/test-vllm-llama-stack/vllm-llama-stack-run.yaml
+</code></pre></div></div>
+
+<p>Alternatively, we can run the following <code class="language-plaintext highlighter-rouge">podman run</code> command instead:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>podman run --security-opt label=disable -it --network host -v /tmp/test-vllm-llama-stack/vllm-llama-stack-run.yaml:/app/config.yaml -v /tmp/test-vllm-llama-stack/llama-stack:/app/llama-stack-source \
+--env INFERENCE_MODEL=$INFERENCE_MODEL \
+--env VLLM_URL=http://$INFERENCE_ADDR:$INFERENCE_PORT/v1 \
+--env VLLM_MAX_TOKENS=8192 \
+--env VLLM_API_TOKEN=fake \
+--env LLAMA_STACK_PORT=$LLAMA_STACK_PORT \
+--entrypoint='["python", "-m", "llama_stack.distribution.server.server", "--yaml-config", "/app/config.yaml"]' \
+localhost/distribution-myenv:dev
+</code></pre></div></div>
+
+<p>Once we start the Llama Stack server successfully, we can then start testing a inference request:</p>
+
+<p>Via Bash:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>llama-stack-client --endpoint http://localhost:5000 inference chat-completion --message "hello, what model are you?"
+</code></pre></div></div>
+
+<p>Output:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ChatCompletionResponse(
+    completion_message=CompletionMessage(
+        content="Hello! I'm an AI, a conversational AI model. I'm a type of computer program designed to understand and respond to human language. My creators have 
+trained me on a vast amount of text data, allowing me to generate human-like responses to a wide range of questions and topics. I'm here to help answer any question you 
+may have, so feel free to ask me anything!",
+        role='assistant',
+        stop_reason='end_of_turn',
+        tool_calls=[]
+    ),
+    logprobs=None
+)
+</code></pre></div></div>
+
+<p>Via Python:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="n">os</span>
+<span class="kn">from</span> <span class="n">llama_stack_client</span> <span class="kn">import</span> <span class="n">LlamaStackClient</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="nc">LlamaStackClient</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="sa">f</span><span class="sh">"</span><span class="s">http://localhost:</span><span class="si">{</span><span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">[</span><span class="sh">'</span><span class="s">LLAMA_STACK_PORT</span><span class="sh">'</span><span class="p">]</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+
+<span class="c1"># List available models
+</span><span class="n">models</span> <span class="o">=</span> <span class="n">client</span><span class="p">.</span><span class="n">models</span><span class="p">.</span><span class="nf">list</span><span class="p">()</span>
+<span class="nf">print</span><span class="p">(</span><span class="n">models</span><span class="p">)</span>
+
+<span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="p">.</span><span class="n">inference</span><span class="p">.</span><span class="nf">chat_completion</span><span class="p">(</span>
+    <span class="n">model_id</span><span class="o">=</span><span class="n">os</span><span class="p">.</span><span class="n">environ</span><span class="p">[</span><span class="sh">"</span><span class="s">INFERENCE_MODEL</span><span class="sh">"</span><span class="p">],</span>
+    <span class="n">messages</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span><span class="sh">"</span><span class="s">role</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">system</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">content</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">You are a helpful assistant.</span><span class="sh">"</span><span class="p">},</span>
+        <span class="p">{</span><span class="sh">"</span><span class="s">role</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">user</span><span class="sh">"</span><span class="p">,</span> <span class="sh">"</span><span class="s">content</span><span class="sh">"</span><span class="p">:</span> <span class="sh">"</span><span class="s">Write a haiku about coding</span><span class="sh">"</span><span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="n">completion_message</span><span class="p">.</span><span class="n">content</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Output:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Model(identifier='meta-llama/Llama-3.2-1B-Instruct', metadata={}, api_model_type='llm', provider_id='vllm', provider_resource_id='meta-llama/Llama-3.2-1B-Instruct', type='model', model_type='llm')]
+Here is a haiku about coding:
+
+Columns of code flow
+Logic codes the endless night
+Tech's silent dawn rise
+</code></pre></div></div>
+
+<h2 id="deployment-on-kubernetes">Deployment on Kubernetes</h2>
+
+<p>Instead of starting the Llama Stack and vLLM servers locally. We can deploy them in a Kubernetes cluster. We’ll use a local Kind cluster for demonstration purposes:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kind create cluster --image kindest/node:v1.32.0 --name llama-stack-test
+</code></pre></div></div>
+
+<p>Start vLLM server as a Kubernetes Pod and Service (remember to replace <code class="language-plaintext highlighter-rouge">&lt;YOUR-HF-TOKEN&gt;</code> with your actual token):</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF |kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vllm-models
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hf-token-secret
+type: Opaque
+data:
+  token: "&lt;YOUR-HF-TOKEN&gt;"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vllm-server
+  labels:
+    app: vllm
+spec:
+  containers:
+  - name: llama-stack
+    image: localhost/vllm-cpu-env:latest
+    command:
+        - bash
+        - -c
+        - |
+          MODEL="meta-llama/Llama-3.2-1B-Instruct"
+          MODEL_PATH=/app/model/$(basename $MODEL)
+          huggingface-cli login --token $HUGGING_FACE_HUB_TOKEN
+          huggingface-cli download $MODEL --local-dir $MODEL_PATH --cache-dir $MODEL_PATH
+          python3 -m vllm.entrypoints.openai.api_server --model $MODEL_PATH --served-model-name $MODEL --port 8000
+    ports:
+      - containerPort: 8000
+    volumeMounts:
+      - name: llama-storage
+        mountPath: /app/model
+    env:
+      - name: HUGGING_FACE_HUB_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: hf-token-secret
+            key: token
+  volumes:
+  - name: llama-storage
+    persistentVolumeClaim:
+      claimName: vllm-models
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-server
+spec:
+  selector:
+    app: vllm
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: NodePort
+EOF
+</code></pre></div></div>
+
+<p>We can verify that the vLLM server has started successfully via the logs (this might take a couple of minutes to download the model):</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ kubectl logs vllm-server
+...
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+</code></pre></div></div>
+
+<p>Then we can modify the previously created <code class="language-plaintext highlighter-rouge">vllm-llama-stack-run.yaml</code> to <code class="language-plaintext highlighter-rouge">/tmp/test-vllm-llama-stack/vllm-llama-stack-run-k8s.yaml</code> with the following inference provider:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>providers:
+  inference:
+  - provider_id: vllm
+    provider_type: remote::vllm
+    config:
+      url: ${env.VLLM_URL}
+      max_tokens: ${env.VLLM_MAX_TOKENS:4096}
+      api_token: ${env.VLLM_API_TOKEN:fake}
+</code></pre></div></div>
+
+<p>Once we have defined the run configuration for Llama Stack, we can build an image with that configuration the server source code:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &gt;/tmp/test-vllm-llama-stack/Containerfile.llama-stack-run-k8s &lt;&lt;EOF
+FROM distribution-myenv:dev
+
+RUN apt-get update &amp;&amp; apt-get install -y git
+RUN git clone https://github.com/meta-llama/llama-stack.git /app/llama-stack-source
+
+ADD ./vllm-llama-stack-run-k8s.yaml /app/config.yaml
+EOF
+podman build -f /tmp/test-vllm-llama-stack/Containerfile.llama-stack-run-k8s -t llama-stack-run-k8s /tmp/test-vllm-llama-stack
+</code></pre></div></div>
+
+<p>We can then start the LlamaStack server by deploying a Kubernetes Pod and Service:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF |kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llama-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: llama-stack-pod
+  labels:
+    app: llama-stack
+spec:
+  containers:
+  - name: llama-stack
+    image: localhost/llama-stack-run-k8s:latest
+    imagePullPolicy: IfNotPresent
+    command: ["python", "-m", "llama_stack.distribution.server.server", "--yaml-config", "/app/config.yaml"]
+    ports:
+      - containerPort: 5000
+    volumeMounts:
+      - name: llama-storage
+        mountPath: /root/.llama
+  volumes:
+  - name: llama-storage
+    persistentVolumeClaim:
+      claimName: llama-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-stack-service
+spec:
+  selector:
+    app: llama-stack
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+  type: ClusterIP
+EOF
+</code></pre></div></div>
+
+<p>We can check that the LlamaStack server has started:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ kubectl logs vllm-server
+...
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://['::', '0.0.0.0']:5000 (Press CTRL+C to quit)
+</code></pre></div></div>
+
+<p>Now let’s forward the Kubernetes service to a local port and test some inference requests against it via the Llama Stack Client:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl port-forward service/llama-stack-service 5000:5000
+llama-stack-client --endpoint http://localhost:5000 inference chat-completion --message "hello, what model are you?"
+</code></pre></div></div>
+
+<p>You can learn more about different providers and functionalities of Llama Stack on <a href="https://llama-stack.readthedocs.io">the official documentation</a>.</p>
+
+<h2 id="acknowledgement">Acknowledgement</h2>
+
+<p>We’d like to thank the Red Hat AI Engineering team for the implementation of the vLLM inference providers, contributions to many bug fixes, improvements, and key design discussions. We also want to thank the Llama Stack team from Meta and the vLLM team for their timely PR reviews and bug fixes.</p>
+
+  </div><a class="u-url" href="/2025/01/27/intro-to-llama-stack-with-vllm.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <!-- <p class="feed-subscribe">
+          <a href="https://blog.vllm.ai/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p> -->
+        <ul class="contact-list">
+          <li class="p-name">© 2024. vLLM Team. All rights reserved.</li>
+          <li><a href="https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

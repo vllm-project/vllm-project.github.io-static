@@ -73,7 +73,7 @@
 <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code>uv pip <span class="nb">install </span>vllm
 </code></pre></div></div>
 
-<p>Refer to the <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#install-released-versions">documentation</a> for more details on setting up <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a>. Using a simple server-grade setup (Intel 8th Gen CPU), we observe that <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a> is 200x faster than pip:</p>
+<p>Refer to the <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html?device=cuda#create-a-new-python-environment">documentation</a> for more details on setting up <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a>. Using a simple server-grade setup (Intel 8th Gen CPU), we observe that <a href="https://github.com/astral-sh/uv"><strong>uv</strong></a> is 200x faster than pip:</p>
 
 <div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># with cached packages, clean virtual environment</span>
 <span class="nv">$ </span><span class="nb">time </span>pip <span class="nb">install </span>vllm
@@ -117,11 +117,11 @@ uv pip <span class="nb">install </span>vllm 0.17s user 0.57s system 193% cpu 0.3
 
 <p>The <code class="language-plaintext highlighter-rouge">VLLM_USE_PRECOMPILED=1</code> flag instructs the installer to use pre-compiled CUDA kernels instead of building them from source, significantly reducing installation time. This is perfect for developers focusing on Python-level features like API improvements, model support, or integration work.</p>
 
-<p>This lightweight process runs efficiently, even on a laptop. Refer to our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#python-only-build-without-compilation">documentation</a> for more advanced usage.</p>
+<p>This lightweight process runs efficiently, even on a laptop. Refer to our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html?device=cuda#build-wheel-from-source">documentation</a> for more advanced usage.</p>
 
 <h3 id="ckernel-developers">C++/Kernel Developers</h3>
 
-<p>For advanced contributors working with C++ code or CUDA kernels, we incorporate a compilation cache to minimize build time and streamline kernel development. Please check our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu-cuda.html#full-build-with-compilation">documentation</a> for more details.</p>
+<p>For advanced contributors working with C++ code or CUDA kernels, we incorporate a compilation cache to minimize build time and streamline kernel development. Please check our <a href="https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html?device=cuda#build-wheel-from-source">documentation</a> for more details.</p>
 
 <h2 id="track-changes-with-ease">Track Changes with Ease</h2>
 

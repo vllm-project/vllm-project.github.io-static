@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>High Performance and Easy Deployment of vLLM in K8S with “vLLM production-stack” | vLLM Blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="High Performance and Easy Deployment of vLLM in K8S with “vLLM production-stack”" />
+<meta name="author" content="LMCache Team" />
+<meta property="og:locale" content="en_US" />
+<link rel="canonical" href="https://blog.vllm.ai/2025/01/21/stack-release.html" />
+<meta property="og:url" content="https://blog.vllm.ai/2025/01/21/stack-release.html" />
+<meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:image" content="https://blog.vllm.ai/assets/figures/stack/stack-thumbnail.png" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-01-21T00:00:00-08:00" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="twitter:image" content="https://blog.vllm.ai/assets/figures/stack/stack-thumbnail.png" />
+<meta property="twitter:title" content="High Performance and Easy Deployment of vLLM in K8S with “vLLM production-stack”" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"LMCache Team"},"dateModified":"2025-01-21T00:00:00-08:00","datePublished":"2025-01-21T00:00:00-08:00","headline":"High Performance and Easy Deployment of vLLM in K8S with “vLLM production-stack”","image":"https://blog.vllm.ai/assets/figures/stack/stack-thumbnail.png","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.vllm.ai/2025/01/21/stack-release.html"},"url":"https://blog.vllm.ai/2025/01/21/stack-release.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://blog.vllm.ai/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
+<script>
+  window['ga-disable-G-9C5R3JR3QS'] = window.doNotTrack === "1" || navigator.doNotTrack === "1" || navigator.doNotTrack === "yes" || navigator.msDoNotTrack === "1";
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){window.dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9C5R3JR3QS');
+</script>
+
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">vLLM Blog</a></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">High Performance and Easy Deployment of vLLM in K8S with “vLLM production-stack”</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2025-01-21T00:00:00-08:00" itemprop="datePublished">
+        Jan 21, 2025
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">LMCache Team</span></span></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p><br /></p>
+
+<h2 id="tldr">TL;DR</h2>
+<ul>
+  <li><strong>vLLM</strong> boasts the largest open-source community, but what does it take to transform vLLM from the best single-node LLM engine to a premier LLM serving system?</li>
+  <li><strong>Today, we release “vLLM production-stack”</strong>, a vLLM-based full inference stack that introduces two major advantages:
+    <ul>
+      <li><strong>10x better performance</strong> (3-10x lower response delay &amp; 2-5x higher throughput) with prefix-aware request routing and KV-cache sharing.</li>
+      <li><strong>Easy cluster deployment</strong> with built-in support for fault tolerance, autoscaling, and observability.</li>
+    </ul>
+  </li>
+  <li>And the best part? It’s <strong>open-source</strong>—so everyone can get started right away! <a href="https://github.com/vllm-project/production-stack">[<strong>https://github.com/vllm-project/production-stack</strong>]</a></li>
+</ul>
+
+<h1 id="the-context">The Context</h1>
+<!-- Over the past year, LLM inference has raced to the forefront, powering everything from chatbots to code assistants and beyond. It’s quickly becoming critical infrastructure, much like the cloud was to big data, cellular was to mobile apps, and CDNs were (and still are!) to the broader Internet. -->
+
+<p><em>In the AI arms race, it’s no longer just about who has the best model—it’s about <strong>who has the best LLM serving system</strong>.</em></p>
+
+<p><strong>vLLM</strong> has taken the open-source community by storm, with unparalleled hardware and model support plus an active ecosystem of top-notch contributors. But until now, vLLM has mostly focused on <strong>single-node</strong> deployments.</p>
+
+<p>How do we extend its power into a <strong>full-stack</strong> inference system that any organization can deploy at scale with <em>high reliability</em>, <em>high throughput</em>, and <em>low latency</em>? That’s precisely why the LMCache team and the vLLM team built <strong>vLLM production-stack</strong>.</p>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-thumbnail.png" alt="Icon" style="width: 60%; vertical-align:middle;" />
+</div>
+
+<h1 id="introducing-vllm-production-stack">Introducing “<em>vLLM Production-Stack</em>”</h1>
+<p><strong>vLLM Production-stack</strong> is an open-source <strong>reference implementation</strong> of an <strong>inference stack</strong> built on top of vLLM, designed to run seamlessly on a cluster of GPU nodes. It adds four critical functionalities that complement vLLM’s native strengths:</p>
+<ul>
+  <li><strong>KV cache sharing &amp; storage</strong> to speed up inference when context is reused (powered by the <a href="https://github.com/LMCache/LMCache"><strong>LMCache</strong></a> project).</li>
+  <li><strong>Prefix-aware routing</strong> that sends queries to the vLLM instance already holding the relevant context KV cache.</li>
+  <li><strong>Observability</strong> of individual engine status and query-level metrics (TTFT, TBT, throughput).</li>
+  <li><strong>Autoscaling</strong> to handle dynamics of workloads.</li>
+</ul>
+
+<h3 id="comparison-with-alternatives">Comparison with Alternatives:</h3>
+
+<p>Below is a quick snapshot comparing vLLM production-stack with its closest counterparts:</p>
+<div align="center">
+<img src="/assets/figures/stack/stack-table.png" alt="Icon" style="width: 90%; vertical-align:middle;" />
+</div>
+
+<h3 id="the-design">The Design</h3>
+<p>The vLLM production-stack architecture builds on top of vLLM’s powerful single-node engine to provide a cluster-wide solution.</p>
+
+<p>At a high level:</p>
+<ul>
+  <li>Applications send LLM inference requests.</li>
+  <li>Prefix-aware routing checks if the requested context is already cached within the memory pool of one instance. It then forwards the request to the node with the pre-computed cache.</li>
+  <li>Autoscaling and a cluster manager watch the overall load and spin up new vLLM nodes if needed.</li>
+  <li>Observability modules gather metrics like TTFT (Time-To-First-Token), TBT (Time-Between-Tokens), and throughput, giving you real-time insights into your system’s health.</li>
+</ul>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-overview-2.png" alt="Icon" style="width: 90%; vertical-align:middle;" />
+</div>
+
+<h1 id="advantage-1-easy-deployment">Advantage #1: Easy Deployment</h1>
+
+<p>Use helm chart to deploy the vLLM production-stack to your k8s cluster through running a single command:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>sudo helm repo add llmstack-repo https://lmcache.github.io/helm/ &amp;&amp;\
+  sudo helm install llmstack llmstack-repo/vllm-stack 
+</code></pre></div></div>
+
+<p>For more details, please refer to the detailed README at <a href="https://github.com/vllm-project/production-stack">vLLM production-stack repo</a>. <a href="https://github.com/LMCache/LMStack/tree/main/tutorials">Tutorials</a> about setting up k8s cluster and customizing helm charts are also available.</p>
+
+<h1 id="advantage-2-better-performance">Advantage #2: Better Performance</h1>
+<p>We conduct a benchmark of multi-round Q&amp;A workload on vLLM production-stack and other setups, including vLLM + KServe and an commercial endpoint service.
+The results show vLLM stack outperforms other setups across key metrics (time to first token and inter token latency).</p>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-ttft.png" alt="Icon" style="width: 60%; vertical-align:middle;" />
+</div>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-itl.png" alt="Icon" style="width: 60%; vertical-align:middle;" />
+</div>
+
+<h1 id="advantage-3-effortless-monitoring">Advantage #3: Effortless Monitoring</h1>
+<p>Keep real-time tracking of your LLM inference cluster with key metrics including latency distributions, number of requests over time, KV cache hit rate.</p>
+
+<div align="center">
+<img src="/assets/figures/stack/stack-panel.png" alt="Icon" style="width: 70%; vertical-align:middle;" />
+</div>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>We’re thrilled to unveil <strong>vLLM Production Stack</strong>—the next step in transforming vLLM from a best-in-class single-node engine into a full-scale LLM serving system. 
+We believe the vLL stack will open new doors for organizations seeking to build, test, and deploy LLM applications at scale without sacrificing performance or simplicity.</p>
+
+<p>If you’re as excited as we are, don’t wait!</p>
+<ul>
+  <li><strong>Clone the repo: <a href="https://github.com/vllm-project/production-stack">https://github.com/vllm-project/production-stack</a></strong></li>
+  <li><strong>Kick the tires</strong></li>
+  <li><strong>Let us know what you think!</strong></li>
+  <li><strong><a href="https://forms.gle/mQfQDUXbKfp2St1z7">Interest Form</a></strong></li>
+</ul>
+
+<p>Join us to build a future where every application can harness the power of LLM inference—reliably, at scale, and without breaking a sweat.
+<em>Happy deploying!</em></p>
+
+<p>Contacts:</p>
+<ul>
+  <li><strong>vLLM <a href="https://slack.vllm.ai/">slack</a></strong></li>
+  <li><strong>LMCache <a href="https://join.slack.com/t/lmcacheworkspace/shared_invite/zt-2viziwhue-5Amprc9k5hcIdXT7XevTaQ">slack</a></strong></li>
+</ul>
+
+  </div><a class="u-url" href="/2025/01/21/stack-release.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <!-- <p class="feed-subscribe">
+          <a href="https://blog.vllm.ai/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p> -->
+        <ul class="contact-list">
+          <li class="p-name">© 2024. vLLM Team. All rights reserved.</li>
+          <li><a href="https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
