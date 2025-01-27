@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>vLLM V1: A Major Upgrade to vLLM’s Core Architecture | vLLM Blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="vLLM V1: A Major Upgrade to vLLM’s Core Architecture" />
+<meta name="author" content="vLLM Team" />
+<meta property="og:locale" content="en_US" />
+<link rel="canonical" href="https://blog.vllm.ai/2025/01/27/v1-alpha-release.html" />
+<meta property="og:url" content="https://blog.vllm.ai/2025/01/27/v1-alpha-release.html" />
+<meta property="og:site_name" content="vLLM Blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-01-27T00:00:00-08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="vLLM V1: A Major Upgrade to vLLM’s Core Architecture" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"vLLM Team"},"dateModified":"2025-01-27T00:00:00-08:00","datePublished":"2025-01-27T00:00:00-08:00","headline":"vLLM V1: A Major Upgrade to vLLM’s Core Architecture","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.vllm.ai/2025/01/27/v1-alpha-release.html"},"url":"https://blog.vllm.ai/2025/01/27/v1-alpha-release.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://blog.vllm.ai/feed.xml" title="vLLM Blog" /><script async src="https://www.googletagmanager.com/gtag/js?id=G-9C5R3JR3QS"></script>
+<script>
+  window['ga-disable-G-9C5R3JR3QS'] = window.doNotTrack === "1" || navigator.doNotTrack === "1" || navigator.doNotTrack === "yes" || navigator.msDoNotTrack === "1";
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){window.dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9C5R3JR3QS');
+</script>
+
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">vLLM Blog</a></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting"><header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">vLLM V1: A Major Upgrade to vLLM&#39;s Core Architecture</h1>
+    <p class="post-meta"><time class="dt-published" datetime="2025-01-27T00:00:00-08:00" itemprop="datePublished">
+        Jan 27, 2025
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">vLLM Team</span></span></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p align="center">
+<picture>
+<img src="/assets/figures/v1/vLLM_V1_Logo.png" width="80%" />
+</picture>
+</p>
+
+<p>We are thrilled to announce the <strong>alpha release of vLLM V1</strong>, a major upgrade to vLLM’s core architecture. Based on lessons we learned over the past 1.5 years of vLLM development, we revisited key design decisions, consolidated various features, and simplified the codebase to enhance flexibility and scalability. V1 already achieves <strong>state-of-the-art performance</strong> and is set to gain even more optimizations. Best of all, users can enable V1 seamlessly—just set the <code class="language-plaintext highlighter-rouge">VLLM_USE_V1=1</code> environment variable <strong>without any changes to the existing API</strong>. After testing and feedback collection in the coming weeks, we plan to transition V1 into the default engine.</p>
+
+<h1 id="why-vllm-v1">Why vLLM V1?</h1>
+
+<h2 id="learning-from-vllm-v0">Learning from vLLM V0</h2>
+
+<p>Over the past 1.5 years, vLLM has achieved remarkable success in supporting diverse models, features, and hardware backends. However, while our community scaled horizontally, we faced challenges making the systems simple and integrating various optimizations vertically across the stack. Features were often developed independently, making it difficult to combine them effectively and cleanly. Over time, technical debt accumulated, prompting us to revisit our foundational design.</p>
+
+<h2 id="goals-of-v1">Goals of V1</h2>
+
+<p>Based on the above motivation, vLLM V1 is designed to:</p>
+<ul>
+  <li>Provide a <strong>simple, modular, and easy-to-hack codebase</strong>.</li>
+  <li>Ensure <strong>high performance</strong> with near-zero CPU overhead.</li>
+  <li><strong>Combine key optimizations</strong> into a unified architecture.</li>
+  <li>Require <strong>zero configs</strong> by enabling features/optimizations by default.</li>
+</ul>
+
+<h2 id="scope-of-v1">Scope of V1</h2>
+
+<p>vLLM V1 introduces a comprehensive re-architecture of its core components, including the scheduler, KV cache manager, worker, sampler, and API server. However, it still shares a lot of code with vLLM V0, such as model implementations, GPU kernels, distributed control plane, and various utility functions. This approach allows V1 to leverage the extensive coverage and stability established by V0 while delivering significant enhancements to performance and code complexity.</p>
+
+<h1 id="whats-new-in-vllm-v1">What’s New in vLLM V1?</h1>
+
+<h2 id="1-optimized-execution-loop--api-server">1. Optimized Execution Loop &amp; API Server</h2>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/v1_server_architecture.png" width="60%" />
+</picture>
+</p>
+
+<p>As a full-fledged continuous batching engine and OpenAI-compatible API server, vLLM’s core execution loop relies on CPU operations to manage request states between model forward passes. As GPUs are getting faster and significantly reducing model execution times, the CPU overhead for tasks like running the API server, scheduling work, preparing inputs, de-tokenizing outputs, and streaming responses to users becomes increasingly pronounced. This issue is particularly noticeable with smaller models like Llama-8B running on NVIDIA H100 GPUs, where execution time on the GPU is as low as ~5ms.</p>
+
+<p>In the <a href="https://blog.vllm.ai/2024/09/05/perf-update.html">v0.6.0 release</a>, vLLM introduced a multiprocessing API server utilizing ZeroMQ for IPC, enabling overlap between the API server and AsyncLLM. vLLM V1 extends this by integrating the multiprocessing architecture deeper into the core of AsyncLLM, creating an isolated <code class="language-plaintext highlighter-rouge">EngineCore</code> execution loop that focuses exclusively on the scheduler and model executor. This design allows for greater overlap of CPU-intensive tasks—such as tokenization, multimodal input processing, de-tokenization, and request streaming—with the core execution loop, thereby maximizing model throughput.</p>
+
+<h2 id="2-simple--flexible-scheduler">2. Simple &amp; Flexible Scheduler</h2>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/v1_scheduling.png" width="60%" />
+</picture>
+</p>
+
+<p>vLLM V1 introduces a simple yet flexible scheduler. It removes the traditional distinction between “prefill” and “decode” phases by treating user-given prompt tokens and model-generated output tokens uniformly. Scheduling decisions are represented as a simple dictionary, e.g., <code class="language-plaintext highlighter-rouge">{request_id: num_tokens}</code>, which specifies the number of tokens to process for each request at each step. We find that this representation is general enough to support features such as chunked prefills, prefix caching, and speculative decoding. For instance, chunked-prefill scheduling is seamlessly implemented: with a fixed token budget, the scheduler dynamically decides how many tokens to allocate to each request (as shown in the figure above).</p>
+
+<h2 id="3-zero-overhead-prefix-caching">3. Zero-Overhead Prefix Caching</h2>
+
+<p>vLLM V1, like V0, uses hash-based prefix caching and LRU-based cache eviction. In V0, enabling prefix caching sometimes causes significant CPU overhead, leading to rather decreased performance when the cache hit rate is low. As a result, it is disabled by default. In V1, we optimize the data structure for constant-time cache eviction and carefully minimize Python object creation overhead. This makes V1’s prefix caching introduce near-zero performance degradation, even when the cache hit rate is 0%.</p>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/v1_prefix_caching.png" width="90%" />
+</picture>
+</p>
+
+<p>Here are some benchmark results. In our experiments, we observed that V1’s perfix caching causes less than 1% decrease in throughput even when the cache hit rate is 0%, while it improves the performance several times when the cache hit rate is high. <strong>Thanks to the near-zero overhead, we now enable prefix caching by default in V1.</strong></p>
+
+<h2 id="4-clean-architecture-for-tensor-parallel-inference">4. Clean Architecture for Tensor-Parallel Inference</h2>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/v1_tp_architecture.png" width="60%" />
+</picture>
+</p>
+
+<p>vLLM V1 introduces a clean and efficient architecture for tensor-parallel inference, effectively addressing the limitations of V0. In V0, the scheduler and Worker 0 are colocated within the same process to reduce the inter-process communication overhead when broadcasting input data to workers. However, this design introduces an asymmetric architecture, increasing complexity. V1 overcomes this by caching request states on the worker side and transmitting only incremental updates (diffs) at each step. This optimization minimizes inter-process communication, allowing the scheduler and Worker 0 to operate in separate processes, resulting in a clean, symmetric architecture. Moreover, V1 abstracts away most distributed logic, enabling workers to operate the same way for both single-GPU and multi-GPU setups.</p>
+
+<h2 id="5-efficient-input-preparation">5. Efficient Input Preparation</h2>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/persistent_batch.png" width="50%" />
+</picture>
+</p>
+
+<p>In vLLM V0, input tensors and metadata for the model are recreated at each step, often leading to significant CPU overhead. To optimize this, V1 implements the <a href="https://github.com/InternLM/lmdeploy">Persistent Batch</a> technique, which caches the input tensors and only applies the diffs to them at each step. Additionally, V1 minimizes the CPU overheads in updating the tensors by extensively utilizing Numpy operations instead of Python’s native ones.</p>
+
+<h2 id="6-torchcompile-and-piecewise-cuda-graphs">6. torch.compile and Piecewise CUDA Graphs</h2>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/torch_compile_cuda_graph.png" width="70%" />
+</picture>
+</p>
+
+<p>V1 leverages vLLM’s <code class="language-plaintext highlighter-rouge">torch.compile</code> integration to automatically optimize the model. This allows V1 to efficiently support a wide variety of models while minimizing the need of writing custom kernels. Furthermore, V1 introduces <em>piecewise CUDA graphs</em> to alleviate the limitations of CUDA graphs. We are preparing dedicated blog posts on the torch.compile integration and piecewise CUDA graphs, so <strong>stay tuned for more updates</strong>!</p>
+
+<h2 id="7-enhanced-support-for-multimodal-llms">7. Enhanced Support for Multimodal LLMs</h2>
+
+<p>vLLM V1 treats multimodal large language models (MLLMs) as first-class citizens and introduces several key improvements in their support.</p>
+
+<p>First, V1 optimizes multimodal input preprocessing by moving it to a non-blocking process. For example, image files (e.g., JPG or PNG) must be converted into tensors of pixel values, cropped, and transformed before being fed into the model. This preprocessing can consume significant CPU cycles, possibly leaving the GPU idle. To address this, V1 offloads the preprocessing task to a separate process, preventing it from blocking the GPU worker, and adds a preprocessing cache so that processed inputs can be reused across requests if they share the same multimodal input.</p>
+
+<p>Second, V1 introduces prefix caching for multimodal inputs. In addition to the hash of token IDs, image hashes are used to identify the KV cache for image inputs. This improvement is especially beneficial for multi-turn conversations that include image inputs.</p>
+
+<p>Third, V1 enables chunked-prefill scheduling for MLLMs with the “encoder cache.” In V0, image inputs and text inputs had to be processed in the same step because the LLM decoder’s <img /> token depends on the vision embeddings which are discarded after the step. With the encoder cache, V1 temporarily stores the vision embeddings, allowing the scheduler to split the text inputs into chunks and process them across multiple steps without needing to regenerate vision embeddings every step.</p>
+
+<h2 id="8-flashattention-3">8. FlashAttention 3</h2>
+
+<p>The final piece of the puzzle for vLLM V1 was integrating <a href="https://arxiv.org/abs/2407.08608">FlashAttention 3</a>. Given the high level of dynamism in V1—such as combining prefill and decode within the same batch—a flexible and high-performance attention kernel was essential. FlashAttention 3 effectively addresses this requirement, offering robust support for a wide range of features while maintaining excellent performance across diverse use cases.</p>
+
+<h1 id="performance">Performance</h1>
+
+<p>Thanks to the extensive architectural enhancements, vLLM V1 achieves state-of-the-art throughput and latency, delivering up to <strong>1.7x higher throughput</strong> compared to V0 (<em>without multi-step scheduling</em>).
+These dramatic performance gains stem from comprehensive CPU overhead reductions across the entire stack.
+The improvements are even more pronounced for vision-language models (VLMs) like Qwen2-VL, thanks to V1’s enhanced support for VLMs.</p>
+
+<ul>
+  <li><strong>Text Models: Llama 3.1 8B &amp; Llama 3.3 70B</strong></li>
+</ul>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/v1_llama.png" width="100%" />
+</picture>
+</p>
+
+<p>We measured the performance of vLLM V0 and V1 on Llama 3.1 8B and Llama 3.3 70B models using the ShareGPT dataset.
+V1 demonstrated consistently lower latency than V0 especially at high QPS, thanks to the higher throughput it achieves.
+Given that the kernels used for V0 and V1 are almost identical, the performance difference is mainly due to the architectural improvements (reduced CPU overheads) in V1.</p>
+
+<ul>
+  <li><strong>Vision-language Models: Qwen2-VL</strong></li>
+</ul>
+
+<p align="center">
+<picture>
+<img src="/assets/figures/v1/v1_qwen2vl.png" width="60%" />
+</picture>
+</p>
+
+<p>We evaluated the performance on VLMs by testing Qwen2-VL using the <a href="https://arxiv.org/abs/2412.08687">VisionArena</a> dataset.
+V1 delivered even larger speedups over V0, thanks its improved VLM support, driven by two key improvements: offloading input processing to a separate process and implementing more flexible scheduling for multimodal queries.
+We would also like to point out that prefix caching is now natively supported for multimodal models in V1, but will skip the benchmark results here.</p>
+
+<ul>
+  <li><strong>Looking Forward</strong></li>
+</ul>
+
+<p>While these improvements are significant, we view them as just the beginning.
+The redesigned architecture provies a solid foundation that will enable rapid development of new features.
+We look forward to sharing additional enhancements in the coming weeks.
+Stay tuned for more updates!</p>
+
+<h1 id="limitations--future-work">Limitations &amp; Future Work</h1>
+
+<p>While vLLM V1 shows promising results, it is still in its alpha stage and lacks several features from V0. Here’s a clarification:</p>
+
+<p><strong>Model Support:</strong><br />
+V1 supports decoder-only Transformers like Llama, mixture-of-experts (MoE) models like Mixtral, and several VLMs such as Qwen2-VL. All quantization methods are supported. However, V1 currently does not support encoder-decoder architectures like multimodal Llama 3.2, Mamba-based models like Jamba, or embedding models. Please check out <a href="">our documentation</a> for a more detailed list of the supported models.</p>
+
+<p><strong>Feature Limitations:</strong><br />
+V1 currently lacks support for log probs, prompt log probs sampling parameters, pipeline parallelism, structured decoding, speculative decoding, prometheus metrics, and LoRA. We are actively working to close this feature gap and add brand-new optimizations to the V1 engine.</p>
+
+<p><strong>Hardware Support:</strong><br />
+V1 currently supports only Ampere or later NVIDIA GPUs. We are actively working to extend support to other hardware backends such as TPU.</p>
+
+<p>Finally, please note that you can continue using V0 and maintain backward compatibility by not setting <code class="language-plaintext highlighter-rouge">VLLM_USE_V1=1</code>.</p>
+
+<h1 id="how-to-get-started">How to Get Started</h1>
+
+<p>To use vLLM V1:</p>
+<ol>
+  <li>Install the latest version of vLLM with <code class="language-plaintext highlighter-rouge">pip install vllm --upgrade</code>.</li>
+  <li><strong>Set the environment variable <code class="language-plaintext highlighter-rouge">export VLLM_USE_V1=1</code>.</strong></li>
+  <li>Use vLLM’s <a href="https://github.com/vllm-project/vllm/blob/main/examples/offline_inference/basic.py">Python API</a> or OpenAI-compatible server (<code class="language-plaintext highlighter-rouge">vllm serve &lt;model-name&gt;</code>). You don’t need any change to the existing API.</li>
+</ol>
+
+<p>Please try it out and share your feedback!</p>
+
+<h1 id="acknowledgment">Acknowledgment</h1>
+
+<p>We gratefully acknowledge that the design of vLLM V1 builds upon and enhances several open-source LLM inference engines, including <a href="https://github.com/ModelTC/lightllm">LightLLM</a>, <a href="https://github.com/InternLM/lmdeploy">LMDeploy</a>, <a href="https://github.com/sgl-project/sglang">SGLang</a>, <a href="https://github.com/huggingface/text-generation-inference">TGI</a>, and <a href="https://github.com/NVIDIA/TensorRT-LLM">TRT-LLM</a>. These engines have significantly influenced our work, and we have gained valuable insights from them.</p>
+
+<p>The V1 re-architecture is a continued joint effort across the entire vLLM team and community. Below is an incomplete list of contributors to this milestone:</p>
+
+<ul>
+  <li>UC Berkeley, Neural Magic (now Red Hat), Anyscale, and Roblox mainly drove the effort together.</li>
+  <li><a href="https://github.com/WoosukKwon">Woosuk Kwon</a> initiated the project and implemented the scheduler and model runner.</li>
+  <li><a href="https://github.com/robertgshaw2-redhat">Robert Shaw</a> implemented the optimized execution loop and API server.</li>
+  <li><a href="https://github.com/comaniac">Cody Yu</a> implemented efficient prefix caching for text and image inputs.</li>
+  <li><a href="https://github.com/ywang96">Roger Wang</a> led the overall enhanced MLLM support in V1.</li>
+  <li><a href="https://github.com/youkaichao">Kaichao You</a> led the torch.compile integration and implemented the piecewise CUDA graphs.</li>
+  <li><a href="https://github.com/tlrmchlsmth">Tyler Michael Smith</a> implemented the tensor parallelism support with Python multiprocessing.</li>
+  <li><a href="https://github.com/ruisearch42">Rui Qiao</a> implemented the tensor parallelism support with Ray and is implementing pipeline parallelism support.</li>
+  <li><a href="https://github.com/LucasWilkinson">Lucas Wilkinson</a> added support for FlashAttention 3.</li>
+  <li><a href="https://github.com/alexm-redhat">Alexander Matveev</a> implemented the optimized preprocessor for multimodal inputs and is implementing TPU support.</li>
+  <li><a href="https://github.com/sroy745">Sourashis Roy</a> implemented the logit penalties in the sampler.</li>
+  <li><a href="https://github.com/DarkLight1337">Cyrus Leung</a> led the MLLM input processing refactoring effort and helped its integration to V1.</li>
+  <li><a href="https://github.com/russellb">Russell Bryant</a> addressed several multiprocess-related issues.</li>
+  <li><a href="https://github.com/njhill">Nick Hill</a> optimized the engine loop and API server.</li>
+  <li><a href="https://github.com/rickyyx">Ricky Xu</a> and <a href="https://github.com/heheda12345">Chen Zhang</a> helped refactor the KV cache manager.</li>
+  <li><a href="https://github.com/jeejeelee">Jie Li</a> and <a href="https://github.com/mgoin">Michael Goin</a> helped with MLLM support and optimization.</li>
+  <li><a href="https://github.com/aarnphm">Aaron Pham</a> is implementing the structured decoding support.</li>
+  <li><a href="https://github.com/varun-sundar-rabindranath">Varun Sundar Rabindranath</a> is implementing the multi-LoRA support.</li>
+  <li><a href="https://github.com/afeldman-nm">Andrew Feldman</a> is implementing the log probs and prompt log probs support.</li>
+  <li><a href="https://github.com/LiuXiaoxuanPKU">Lily Liu</a> is implementing the speculative decoding support.</li>
+  <li><a href="https://github.com/KuntaiDu">Kuntai Du</a> is implementing the prefill disaggregation and KV Cache transfer support.</li>
+  <li><a href="https://github.com/simon-mo">Simon Mo</a> and <a href="https://github.com/zhuohan123">Zhuohan Li</a> contributed to the V1 system design.</li>
+</ul>
+
+  </div><a class="u-url" href="/2025/01/27/v1-alpha-release.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <!-- <p class="feed-subscribe">
+          <a href="https://blog.vllm.ai/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p> -->
+        <ul class="contact-list">
+          <li class="p-name">© 2024. vLLM Team. All rights reserved.</li>
+          <li><a href="https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <p></p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
