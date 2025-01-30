@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="https://blog.vllm.ai/feed.xml" rel="self" type="application/atom+xml" /><link href="https://blog.vllm.ai/" rel="alternate" type="text/html" /><updated>2025-01-27T11:53:46-08:00</updated><id>https://blog.vllm.ai/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2024. vLLM Team. All rights reserved.</name></author><entry><title type="html">Introducing vLLM Inference Provider in Llama Stack</title><link href="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html" rel="alternate" type="text/html" title="Introducing vLLM Inference Provider in Llama Stack" /><published>2025-01-27T00:00:00-08:00</published><updated>2025-01-27T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html"><![CDATA[<p>We are excited to announce that vLLM inference provider is now available in <a href="https://github.com/meta-llama/llama-stack">Llama Stack</a> through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="https://blog.vllm.ai/feed.xml" rel="self" type="application/atom+xml" /><link href="https://blog.vllm.ai/" rel="alternate" type="text/html" /><updated>2025-01-30T11:55:29-08:00</updated><id>https://blog.vllm.ai/feed.xml</id><title type="html">vLLM Blog</title><author><name>© 2025. vLLM Team. All rights reserved.</name></author><entry><title type="html">Introducing vLLM Inference Provider in Llama Stack</title><link href="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html" rel="alternate" type="text/html" title="Introducing vLLM Inference Provider in Llama Stack" /><published>2025-01-27T00:00:00-08:00</published><updated>2025-01-27T00:00:00-08:00</updated><id>https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm</id><content type="html" xml:base="https://blog.vllm.ai/2025/01/27/intro-to-llama-stack-with-vllm.html"><![CDATA[<p>We are excited to announce that vLLM inference provider is now available in <a href="https://github.com/meta-llama/llama-stack">Llama Stack</a> through the collaboration between the Red Hat AI Engineering team and the Llama Stack team from Meta. This article provides an introduction to this integration and a tutorial to help you get started using it locally or deploying it in a Kubernetes cluster.</p>
 
 <h1 id="what-is-llama-stack">What is Llama Stack?</h1>
 
@@ -119,7 +119,7 @@ LLAMA_STACK_DIR=. PYTHONPATH=. python -m llama_stack.cli.llama stack build --con
   provider_model_id: null
 </code></pre></div></div>
 
-<p>Then we can start the LlamaStack Server with the image we built via <code class="language-plaintext highlighter-rouge">llama stack run</code>:</p>
+<p>Then we can start the Llama Stack Server with the image we built via <code class="language-plaintext highlighter-rouge">llama stack run</code>:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>export INFERENCE_ADDR=host.containers.internal
 export INFERENCE_PORT=8000
 export INFERENCE_MODEL=meta-llama/Llama-3.2-1B-Instruct
@@ -287,12 +287,12 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
   - provider_id: vllm
     provider_type: remote::vllm
     config:
-      url: ${env.VLLM_URL}
-      max_tokens: ${env.VLLM_MAX_TOKENS:4096}
-      api_token: ${env.VLLM_API_TOKEN:fake}
+      url: http://vllm-server.default.svc.cluster.local:8000/v1
+      max_tokens: 4096
+      api_token: fake
 </code></pre></div></div>
 
-<p>Once we have defined the run configuration for Llama Stack, we can build an image with that configuration the server source code:</p>
+<p>Once we have defined the run configuration for Llama Stack, we can build an image with that configuration and the server source code:</p>
 
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &gt;/tmp/test-vllm-llama-stack/Containerfile.llama-stack-run-k8s &lt;&lt;EOF
 FROM distribution-myenv:dev
@@ -305,7 +305,7 @@ EOF
 podman build -f /tmp/test-vllm-llama-stack/Containerfile.llama-stack-run-k8s -t llama-stack-run-k8s /tmp/test-vllm-llama-stack
 </code></pre></div></div>
 
-<p>We can then start the LlamaStack server by deploying a Kubernetes Pod and Service:</p>
+<p>We can then start the Llama Stack server by deploying a Kubernetes Pod and Service:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF |kubectl apply -f -
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -355,7 +355,7 @@ spec:
 EOF
 </code></pre></div></div>
 
-<p>We can check that the LlamaStack server has started:</p>
+<p>We can check that the Llama Stack server has started:</p>
 <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ kubectl logs vllm-server
 ...
 INFO:     Started server process [1]
@@ -530,7 +530,7 @@ Stay tuned for more updates!</p>
 <p>While vLLM V1 shows promising results, it is still in its alpha stage and lacks several features from V0. Here’s a clarification:</p>
 
 <p><strong>Model Support:</strong><br />
-V1 supports decoder-only Transformers like Llama, mixture-of-experts (MoE) models like Mixtral, and several VLMs such as Qwen2-VL. All quantization methods are supported. However, V1 currently does not support encoder-decoder architectures like multimodal Llama 3.2, Mamba-based models like Jamba, or embedding models. Please check out <a href="">our documentation</a> for a more detailed list of the supported models.</p>
+V1 supports decoder-only Transformers like Llama, mixture-of-experts (MoE) models like Mixtral, and several VLMs such as Qwen2-VL. All quantization methods are supported. However, V1 currently does not support encoder-decoder architectures like multimodal Llama 3.2, Mamba-based models like Jamba, or embedding models. Please check out <a href="https://docs.vllm.ai/en/latest/models/supported_models.html">our documentation</a> for a more detailed list of the supported models.</p>
 
 <p><strong>Feature Limitations:</strong><br />
 V1 currently lacks support for log probs, prompt log probs sampling parameters, pipeline parallelism, structured decoding, speculative decoding, prometheus metrics, and LoRA. We are actively working to close this feature gap and add brand-new optimizations to the V1 engine.</p>
